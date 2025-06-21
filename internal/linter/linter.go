@@ -9,7 +9,6 @@ import (
 	"github.com/heyimusa/go-terraform-linter/internal/parser"
 	"github.com/heyimusa/go-terraform-linter/internal/report"
 	"github.com/heyimusa/go-terraform-linter/internal/rules"
-	yaml "gopkg.in/yaml.v3"
 )
 
 type Linter struct {
