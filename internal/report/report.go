@@ -10,6 +10,84 @@ import (
 	"github.com/fatih/color"
 )
 
+// SARIF represents the Static Analysis Results Interchange Format
+type SARIF struct {
+	Schema  string    `json:"$schema"`
+	Version string    `json:"version"`
+	Runs    []SARIFRun `json:"runs"`
+}
+
+type SARIFRun struct {
+	Tool    SARIFTool      `json:"tool"`
+	Results []SARIFResult  `json:"results"`
+}
+
+type SARIFTool struct {
+	Driver SARIFDriver `json:"driver"`
+}
+
+type SARIFDriver struct {
+	Name            string      `json:"name"`
+	Version         string      `json:"version"`
+	InformationUri  string      `json:"informationUri"`
+	Rules           []SARIFRule `json:"rules"`
+}
+
+type SARIFRule struct {
+	ID               string                 `json:"id"`
+	Name             string                 `json:"name"`
+	ShortDescription SARIFShortDescription  `json:"shortDescription"`
+	FullDescription  SARIFFullDescription   `json:"fullDescription"`
+	DefaultConfiguration SARIFConfiguration `json:"defaultConfiguration"`
+	Properties       SARIFProperties        `json:"properties"`
+}
+
+type SARIFShortDescription struct {
+	Text string `json:"text"`
+}
+
+type SARIFFullDescription struct {
+	Text string `json:"text"`
+}
+
+type SARIFConfiguration struct {
+	Level string `json:"level"`
+}
+
+type SARIFProperties struct {
+	Tags     []string `json:"tags"`
+	Security string   `json:"security-severity,omitempty"`
+}
+
+type SARIFResult struct {
+	RuleID    string           `json:"ruleId"`
+	RuleIndex int              `json:"ruleIndex"`
+	Level     string           `json:"level"`
+	Message   SARIFMessage     `json:"message"`
+	Locations []SARIFLocation  `json:"locations"`
+}
+
+type SARIFMessage struct {
+	Text string `json:"text"`
+}
+
+type SARIFLocation struct {
+	PhysicalLocation SARIFPhysicalLocation `json:"physicalLocation"`
+}
+
+type SARIFPhysicalLocation struct {
+	ArtifactLocation SARIFArtifactLocation `json:"artifactLocation"`
+	Region           SARIFRegion           `json:"region"`
+}
+
+type SARIFArtifactLocation struct {
+	URI string `json:"uri"`
+}
+
+type SARIFRegion struct {
+	StartLine int `json:"startLine"`
+}
+
 type Issue struct {
 	File        string `json:"file"`
 	Rule        string `json:"rule"`
@@ -257,43 +335,12 @@ func (r *Report) PrintJSON() {
 }
 
 func (r *Report) PrintSARIF() {
-	sarif := map[string]interface{}{
-		"version": "2.1.0",
-		"runs": []interface{}{
-			map[string]interface{}{
-				"tool": map[string]interface{}{
-					"driver": map[string]interface{}{
-						"name": "go-terraform-linter",
-						"informationUri": "https://github.com/heyimusa/go-terraform-linter",
-					},
-				},
-				"results": []interface{}{},
-			},
-		},
-	}
-	results := []interface{}{}
-	for _, issue := range r.Issues {
-		results = append(results, map[string]interface{}{
-			"ruleId": issue.Rule,
-			"message": map[string]string{"text": issue.Message + ". Suggestion: " + issue.FixSuggestion},
-			"locations": []interface{}{
-				map[string]interface{}{
-					"physicalLocation": map[string]interface{}{
-						"artifactLocation": map[string]string{"uri": issue.File},
-						"region": map[string]int{"startLine": issue.Line},
-					},
-				},
-			},
-			"level": strings.ToLower(issue.Severity),
-		})
-	}
-	sarif["runs"].([]interface{})[0].(map[string]interface{})["results"] = results
-	out, err := json.MarshalIndent(sarif, "", "  ")
+	data, err := r.GenerateSARIF()
 	if err != nil {
-		fmt.Println("Failed to marshal SARIF report:", err)
+		fmt.Println("Failed to generate SARIF report:", err)
 		return
 	}
-	fmt.Println(string(out))
+	fmt.Println(string(data))
 }
 
 func (r *Report) PrintHTML() {
@@ -314,38 +361,7 @@ func (r *Report) SaveToFileWithFormat(filename, format string) error {
 	case "json":
 		out, err = json.MarshalIndent(r, "", "  ")
 	case "sarif":
-		sarif := map[string]interface{}{
-			"version": "2.1.0",
-			"runs": []interface{}{
-				map[string]interface{}{
-					"tool": map[string]interface{}{
-						"driver": map[string]interface{}{
-							"name": "go-terraform-linter",
-							"informationUri": "https://github.com/heyimusa/go-terraform-linter",
-						},
-					},
-					"results": []interface{}{},
-				},
-			},
-		}
-		results := []interface{}{}
-		for _, issue := range r.Issues {
-			results = append(results, map[string]interface{}{
-				"ruleId": issue.Rule,
-				"message": map[string]string{"text": issue.Message + ". Suggestion: " + issue.FixSuggestion},
-				"locations": []interface{}{
-					map[string]interface{}{
-						"physicalLocation": map[string]interface{}{
-							"artifactLocation": map[string]string{"uri": issue.File},
-							"region": map[string]int{"startLine": issue.Line},
-						},
-					},
-				},
-				"level": strings.ToLower(issue.Severity),
-			})
-		}
-		sarif["runs"].([]interface{})[0].(map[string]interface{})["results"] = results
-		out, err = json.MarshalIndent(sarif, "", "  ")
+		out, err = r.GenerateSARIF()
 	case "html":
 		html := "<html><head><title>Terraform Linter Report</title></head><body>"
 		html += "<h1>Terraform Linter Report</h1>"
@@ -363,4 +379,167 @@ func (r *Report) SaveToFileWithFormat(filename, format string) error {
 		return err
 	}
 	return os.WriteFile(filename, out, 0644)
+}
+
+// formatText returns the text representation of the report
+func (r *Report) formatText() string {
+	// This would capture the output from PrintSummary but for now return a simple format
+	if len(r.Issues) == 0 {
+		return "✅ No security issues found!"
+	}
+	
+	result := fmt.Sprintf("Found %d issues:\n", len(r.Issues))
+	for _, issue := range r.Issues {
+		result += fmt.Sprintf("- %s: %s (Severity: %s, File: %s, Line: %d)\n", 
+			issue.Rule, issue.Message, issue.Severity, issue.File, issue.Line)
+	}
+	return result
+}
+
+// GenerateSARIF converts a report to SARIF format
+func (r *Report) GenerateSARIF() ([]byte, error) {
+	// Create unique rules map
+	rulesMap := make(map[string]Issue)
+	ruleIndexMap := make(map[string]int)
+	
+	for _, issue := range r.Issues {
+		if _, exists := rulesMap[issue.Rule]; !exists {
+			rulesMap[issue.Rule] = issue
+			ruleIndexMap[issue.Rule] = len(rulesMap) - 1
+		}
+	}
+	
+	// Convert rules to SARIF format
+	var sarifRules []SARIFRule
+	for ruleID, issue := range rulesMap {
+		sarifRule := SARIFRule{
+			ID:   ruleID,
+			Name: ruleID,
+			ShortDescription: SARIFShortDescription{
+				Text: issue.Message,
+			},
+			FullDescription: SARIFFullDescription{
+				Text: issue.Description,
+			},
+			DefaultConfiguration: SARIFConfiguration{
+				Level: r.convertSeverityToSARIF(issue.Severity),
+			},
+			Properties: SARIFProperties{
+				Tags: []string{"security", "terraform", r.getCloudProvider(ruleID)},
+				Security: r.convertSeverityToSecurityScore(issue.Severity),
+			},
+		}
+		sarifRules = append(sarifRules, sarifRule)
+	}
+	
+	// Convert results to SARIF format
+	var sarifResults []SARIFResult
+	for _, issue := range r.Issues {
+		sarifResult := SARIFResult{
+			RuleID:    issue.Rule,
+			RuleIndex: ruleIndexMap[issue.Rule],
+			Level:     r.convertSeverityToSARIF(issue.Severity),
+			Message: SARIFMessage{
+				Text: fmt.Sprintf("%s: %s", issue.Message, issue.Description),
+			},
+			Locations: []SARIFLocation{
+				{
+					PhysicalLocation: SARIFPhysicalLocation{
+						ArtifactLocation: SARIFArtifactLocation{
+							URI: issue.File,
+						},
+						Region: SARIFRegion{
+							StartLine: issue.Line,
+						},
+					},
+				},
+			},
+		}
+		sarifResults = append(sarifResults, sarifResult)
+	}
+	
+	// Create SARIF document
+	sarif := SARIF{
+		Schema:  "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+		Version: "2.1.0",
+		Runs: []SARIFRun{
+			{
+				Tool: SARIFTool{
+					Driver: SARIFDriver{
+						Name:           "go-terraform-linter",
+						Version:        "2.0.0",
+						InformationUri: "https://github.com/heyimusa/go-terraform-linter",
+						Rules:          sarifRules,
+					},
+				},
+				Results: sarifResults,
+			},
+		},
+	}
+	
+	return json.MarshalIndent(sarif, "", "  ")
+}
+
+// convertSeverityToSARIF converts custom severity levels to SARIF levels
+func (r *Report) convertSeverityToSARIF(severity string) string {
+	switch strings.ToLower(severity) {
+	case "critical":
+		return "error"
+	case "high":
+		return "error"
+	case "medium":
+		return "warning"
+	case "low":
+		return "note"
+	default:
+		return "warning"
+	}
+}
+
+// convertSeverityToSecurityScore converts severity to security score for SARIF
+func (r *Report) convertSeverityToSecurityScore(severity string) string {
+	switch strings.ToLower(severity) {
+	case "critical":
+		return "9.0"
+	case "high":
+		return "7.0"
+	case "medium":
+		return "5.0"
+	case "low":
+		return "3.0"
+	default:
+		return "5.0"
+	}
+}
+
+// getCloudProvider extracts cloud provider from rule name
+func (r *Report) getCloudProvider(ruleID string) string {
+	if strings.HasPrefix(ruleID, "AZURE_") {
+		return "azure"
+	} else if strings.HasPrefix(ruleID, "AWS_") {
+		return "aws"
+	}
+	return "general"
+}
+
+// Format generates a report in the specified format
+func (r *Report) Format(format string) (string, error) {
+	switch strings.ToLower(format) {
+	case "json":
+		data, err := json.MarshalIndent(r, "", "  ")
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal JSON: %w", err)
+		}
+		return string(data), nil
+	case "sarif":
+		data, err := r.GenerateSARIF()
+		if err != nil {
+			return "", fmt.Errorf("failed to generate SARIF: %w", err)
+		}
+		return string(data), nil
+	case "text":
+		return r.formatText(), nil
+	default:
+		return "", fmt.Errorf("unsupported format: %s", format)
+	}
 } 
