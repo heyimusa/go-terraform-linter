@@ -13,7 +13,7 @@ tflint
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+/vendor/
 
 # Go workspace file
 go.work
@@ -44,4 +44,8 @@ Thumbs.db
 
 # Build artifacts
 dist/
-build/ 
+build/
+
+# Test/coverage
+*.coverprofile
+coverage/ 
