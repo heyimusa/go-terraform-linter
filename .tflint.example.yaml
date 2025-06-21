@@ -172,13 +172,17 @@ integrations:
     # GitHub token (use environment variable GITHUB_TOKEN)
     token_env: "GITHUB_TOKEN"
     
-  # Slack notifications
-  slack:
+  # Discord notifications
+  discord:
     # Webhook URL for notifications
-    webhook_url_env: "SLACK_WEBHOOK_URL"
+    webhook_url_env: "DISCORD_WEBHOOK_URL"
     
     # Only notify on critical/high issues
     min_severity: "high"
+    
+    # Custom bot settings
+    username: "Terraform Security Bot"
+    avatar_url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg"
     
   # Email notifications
   email:

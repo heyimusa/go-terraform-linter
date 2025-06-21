@@ -387,7 +387,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/heyimusa/go-terraform-linter/issues)
 - 💡 **Feature Requests**: [GitHub Discussions](https://github.com/heyimusa/go-terraform-linter/discussions)
-- 📧 **Contact**: [Your Email]
+- 📧 **Contact**: [heyimusa@gmail.com]
 
 ---
 

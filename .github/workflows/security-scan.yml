@@ -238,19 +238,67 @@ jobs:
     if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     
     steps:
-    - name: Send Slack notification
-      if: env.SLACK_WEBHOOK_URL != ''
-      uses: 8398a7/action-slack@v3
+    - name: Send Discord notification
+      if: env.DISCORD_WEBHOOK_URL != ''
+      uses: sarisia/actions-status-discord@v1
       with:
+        webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
         status: failure
-        text: |
-          🚨 Critical security issues found in Terraform configuration!
+        title: "🚨 Critical Terraform Security Issues Found!"
+        description: |
+          **Repository:** ${{ github.repository }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** `${{ github.sha }}`
+          **Workflow:** ${{ github.workflow }}
           
-          Repository: ${{ github.repository }}
-          Branch: ${{ github.ref_name }}
-          Commit: ${{ github.sha }}
+          Critical security vulnerabilities have been detected in the Terraform configuration. Please review the security scan results immediately.
           
-          Please review the security scan results immediately.
-        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        color: 0xff0000
+        username: "Terraform Security Bot"
+        avatar_url: "https://raw.githubusercontent.com/hashicorp/terraform/main/website/public/img/logo-hashicorp.svg"
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        
+    - name: Send Discord notification (Alternative method)
+      if: env.DISCORD_WEBHOOK_URL != '' && failure()
+      run: |
+        curl -H "Content-Type: application/json" \
+        -X POST \
+        -d '{
+          "embeds": [{
+            "title": "🚨 Critical Terraform Security Issues Found!",
+            "description": "Critical security vulnerabilities detected in Terraform configuration.",
+            "color": 16711680,
+            "fields": [
+              {
+                "name": "Repository",
+                "value": "${{ github.repository }}",
+                "inline": true
+              },
+              {
+                "name": "Branch", 
+                "value": "${{ github.ref_name }}",
+                "inline": true
+              },
+              {
+                "name": "Commit",
+                "value": "`${{ github.sha }}`",
+                "inline": true
+              },
+              {
+                "name": "Action Required",
+                "value": "Please review the security scan results immediately and fix critical issues before merging.",
+                "inline": false
+              }
+            ],
+            "footer": {
+              "text": "Terraform Security Linter",
+              "icon_url": "https://github.com/heyimusa/go-terraform-linter/raw/main/assets/logo.png"
+            },
+            "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+          }],
+          "username": "Terraform Security Bot",
+          "avatar_url": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg"
+        }' \
+        "${{ secrets.DISCORD_WEBHOOK_URL }}" 
