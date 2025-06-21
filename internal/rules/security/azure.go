@@ -293,7 +293,6 @@ func extractFromDebugString(debugStr string) []string {
 	var results []string
 	
 	// The debug output shows actual values in a specific format
-	// Look for patterns like "APP_KEY:base64:H3rKpSanJf+eXC7ESao5XJTxfSfm1rYG7DslfsWnup0="
 	// These appear at the end of the debug string after the last "}"
 	
 	// Find the last occurrence of "}" and extract everything after it
