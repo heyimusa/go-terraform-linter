@@ -1,6 +1,7 @@
 package linter
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"github.com/heyimusa/go-terraform-linter/internal/parser"
 	"github.com/heyimusa/go-terraform-linter/internal/report"
 	"github.com/heyimusa/go-terraform-linter/internal/rules"
+	"gopkg.in/yaml.v3"
 )
 
 type Linter struct {
@@ -24,6 +26,23 @@ type Linter struct {
 	severityOverrides map[string]string
 	// Plugin system stub
 	plugins         []interface{} // TODO: Define plugin interface
+}
+
+// CustomRule struct for YAML/JSON-based rules
+// Only simple attribute checks for now
+// Example:
+// - resource_type: aws_s3_bucket
+//   attribute: acl
+//   equals: public-read
+//   message: S3 bucket is public
+//   severity: high
+
+type CustomRule struct {
+	ResourceType string `yaml:"resource_type" json:"resource_type"`
+	Attribute    string `yaml:"attribute" json:"attribute"`
+	Equals       interface{} `yaml:"equals" json:"equals"`
+	Message      string `yaml:"message" json:"message"`
+	Severity     string `yaml:"severity" json:"severity"`
 }
 
 func NewLinter() *Linter {
@@ -54,6 +73,29 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 	// Validate path
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("configuration path does not exist: %s", configPath)
+	}
+	
+	// --- Load config file for custom rules, severity overrides, exclude patterns ---
+	if l.configFile != "" {
+		data, err := os.ReadFile(l.configFile)
+		if err == nil {
+			var cfg struct {
+				Exclude []string `yaml:"exclude" json:"exclude"`
+				Severity map[string]string `yaml:"severity" json:"severity"`
+				CustomRules []CustomRule `yaml:"custom_rules" json:"custom_rules"`
+			}
+			if strings.HasSuffix(l.configFile, ".json") {
+				_ = json.Unmarshal(data, &cfg)
+			} else {
+				_ = yaml.Unmarshal(data, &cfg)
+			}
+			l.excludePatterns = cfg.Exclude
+			l.severityOverrides = cfg.Severity
+			l.customRules = []rules.Rule{}
+			for _, cr := range cfg.CustomRules {
+				l.customRules = append(l.customRules, cr.ToRule())
+			}
+		}
 	}
 	
 	// Find all Terraform files
@@ -88,6 +130,10 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 			
 			// Run security rules
 			issues := l.rules.RunRules(config, l.severity)
+			// Run custom rules
+			for _, cr := range l.customRules {
+				issues = append(issues, cr.Check(config)...)
+			}
 			results <- result{file, issues, nil}
 		}(file)
 	}
@@ -151,4 +197,28 @@ func (l *Linter) SetConfigFile(path string) {
 }
 func (l *Linter) SetSeverityOverrides(overrides map[string]string) {
 	l.severityOverrides = overrides
+}
+
+// CustomRule implements rules.Rule
+func (cr CustomRule) GetName() string {
+	return "CUSTOM_RULE: " + cr.ResourceType + "." + cr.Attribute
+}
+func (cr CustomRule) Check(config *parser.Config) []rules.Issue {
+	var issues []rules.Issue
+	for _, block := range config.Blocks {
+		if block.Type == "resource" && len(block.Labels) > 0 && block.Labels[0] == cr.ResourceType {
+			if attr, ok := block.Attributes[cr.Attribute]; ok {
+				if attr.Value == cr.Equals {
+					issues = append(issues, rules.Issue{
+						Rule:        cr.GetName(),
+						Message:     cr.Message,
+						Description: cr.Message,
+						Severity:    cr.Severity,
+						Line:        attr.Range.Start.Line,
+					})
+				}
+			}
+		}
+	}
+	return issues
 } 

@@ -1,0 +1,6 @@
+custom_rules:
+  - resource_type: aws_s3_bucket
+    attribute: acl
+    equals: public-read
+    message: S3 bucket is public (custom rule)
+    severity: high
