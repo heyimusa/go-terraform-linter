@@ -128,7 +128,7 @@ func (p *Parser) extractBlocksFromSyntax(body *hclsyntax.Body) []Block {
 			Type:       block.Type,
 			Labels:     block.Labels,
 			Attributes: make(map[string]Attribute),
-			Range:      block.SrcRange,
+			Range:      block.DefRange(),
 		}
 
 		// Extract attributes
