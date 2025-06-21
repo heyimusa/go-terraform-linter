@@ -4,10 +4,14 @@ A fast and comprehensive security-focused Terraform linter written in Go. This t
 
 ## Features ✨
 
-- **Security-Focused Rules**: Detects common security misconfigurations
-- **Fast Performance**: Written in Go for blazing-fast scanning
+- **Comprehensive Security Rules**: 14+ security rules covering network, IAM, compliance, and cost optimization
+- **Multiple Output Formats**: Text, JSON, SARIF, and HTML reports for CI/CD integration
+- **Parallel Processing**: Fast scanning with concurrent file analysis
+- **Fix Suggestions**: Actionable recommendations for each issue
+- **Configuration Support**: Custom rules, severity overrides, and exclude patterns via YAML/JSON
+- **Plugin System**: Extensible architecture for custom rules (coming soon)
+- **Graceful Error Handling**: Continues scanning even when some files fail
 - **Colored Output**: Beautiful terminal output with severity indicators
-- **JSON Reports**: Export detailed reports for CI/CD integration
 - **Severity Filtering**: Filter issues by severity level
 - **Multiple File Support**: Scans `.tf`, `.tfvars`, and `.tf.json` files
 
@@ -25,6 +29,10 @@ A fast and comprehensive security-focused Terraform linter written in Go. This t
 | `MISSING_BACKUP` | High | Resources without backup configurations |
 | `WEAK_CRYPTO` | Medium | Weak cryptographic configurations |
 | `EXCESSIVE_PERMISSIONS` | High | IAM roles with excessive permissions |
+| `OPEN_PORTS` | High | Sensitive ports (22, 3389, 80, 443) open to the world |
+| `IAM_LEAST_PRIVILEGE` | High | IAM policies allowing all actions (*) |
+| `ENCRYPTION_COMPLIANCE` | Critical | Missing encryption for compliance (HIPAA, SOC2, PCI-DSS) |
+| `COST_OPTIMIZATION` | Medium | Large/expensive instance types detected |
 
 ## Installation 🚀
 
@@ -68,8 +76,28 @@ go install github.com/heyimusa/go-terraform-linter/cmd/linter@latest
 # Filter by severity
 ./tflint -s high
 
+# Multiple output formats
+./tflint -f json
+./tflint -f sarif
+./tflint -f html
+
 # Save detailed report
-./tflint -o report.json
+./tflint -o report.json -f json
+./tflint -o report.sarif -f sarif
+./tflint -o report.html -f html
+```
+
+### Advanced Usage
+
+```bash
+# Exclude specific files/patterns
+./tflint --exclude "*.tfvars,test/"
+
+# Use configuration file
+./tflint --config-file .tflint.yaml
+
+# Combine multiple options
+./tflint -c ./terraform -s high -f json -o report.json --exclude "*.tfvars"
 ```
 
 ### Command Line Options
@@ -77,20 +105,46 @@ go install github.com/heyimusa/go-terraform-linter/cmd/linter@latest
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-c, --config` | Path to Terraform configuration directory | `.` |
-| `-o, --output` | Output file for detailed report (JSON) | - |
+| `-o, --output` | Output file for detailed report | - |
 | `-s, --severity` | Minimum severity level (low, medium, high, critical, all) | `all` |
 | `-v, --verbose` | Verbose output | `false` |
+| `-f, --format` | Output format (text, json, sarif, html) | `text` |
+| `--exclude` | Exclude files matching patterns (comma-separated) | - |
+| `--config-file` | Path to YAML/JSON config file | - |
 
 ### Severity Levels
 
-- **Critical**: Immediate security risks (hardcoded secrets)
-- **High**: Significant security vulnerabilities (public access, unencrypted storage)
-- **Medium**: Security concerns (weak passwords, deprecated resources)
+- **Critical**: Immediate security risks (hardcoded secrets, missing encryption)
+- **High**: Significant security vulnerabilities (public access, unencrypted storage, open ports)
+- **Medium**: Security concerns (weak passwords, deprecated resources, cost optimization)
 - **Low**: Best practice violations (missing tags)
+
+## Configuration 📋
+
+### Configuration File (.tflint.yaml)
+
+```yaml
+# Exclude patterns
+exclude:
+  - "*.tfvars"
+  - "test/"
+  - "examples/"
+
+# Severity overrides
+severity:
+  MISSING_TAGS: medium
+  COST_OPTIMIZATION: low
+
+# Custom rules (coming soon)
+custom_rules:
+  - name: "CUSTOM_RULE"
+    description: "Custom security rule"
+    severity: "high"
+```
 
 ## Examples 📝
 
-### Example Output
+### Example Output (Text Format)
 
 ```
 ================================================================================
@@ -98,10 +152,11 @@ go install github.com/heyimusa/go-terraform-linter/cmd/linter@latest
 ================================================================================
 
 📊 Summary:
-   Total Issues: 8
-   Critical: 1
-   High: 5
-   Medium: 2
+   Total Issues: 12
+   Critical: 2
+   High: 6
+   Medium: 3
+   Low: 1
 
 🔍 Detailed Issues:
 --------------------------------------------------------------------------------
@@ -111,17 +166,46 @@ go install github.com/heyimusa/go-terraform-linter/cmd/linter@latest
   🚨 [CRITICAL] Hardcoded secret detected (line 7)
      Rule: EXPOSED_SECRETS
      Description: Secrets should be stored in variables or secret management systems
+     Fix: Store secrets in variables or secret management systems
 
-  ⚠️ [HIGH] S3 bucket has public read access (line 15)
-     Rule: PUBLIC_ACCESS
-     Description: Public read access allows anyone to read bucket contents
+  ⚠️ [HIGH] Sensitive port open to the world (line 25)
+     Rule: OPEN_PORTS
+     Description: Port opened to 0.0.0.0/0 (world). Restrict access to trusted IPs.
+     Fix: Restrict 'cidr_blocks' to trusted IP ranges
 
-  ⚠️ [HIGH] EBS volume encryption not specified (line 21)
-     Rule: UNENCRYPTED_STORAGE
-     Description: EBS volumes should be encrypted by default
+  ⚠️ [HIGH] IAM policy allows all actions (*) (line 65)
+     Rule: IAM_LEAST_PRIVILEGE
+     Description: Use least privilege principle. Avoid wildcard actions.
+     Fix: Avoid using 'Action: *' and 'Resource: *' in IAM policies
 
 ================================================================================
 ❌ Critical and High severity issues found!
+```
+
+### Example Output (JSON Format)
+
+```json
+{
+  "issues": [
+    {
+      "file": "examples/main.tf",
+      "rule": "EXPOSED_SECRETS",
+      "message": "Hardcoded secret detected",
+      "description": "Secrets should be stored in variables or secret management systems",
+      "severity": "critical",
+      "line": 7,
+      "fix_suggestion": "Store secrets in variables or secret management systems"
+    }
+  ],
+  "stats": {
+    "total": 12,
+    "critical": 2,
+    "high": 6,
+    "medium": 3,
+    "low": 1,
+    "files": 1
+  }
+}
 ```
 
 ### Example Terraform Configuration
@@ -136,6 +220,27 @@ resource "aws_s3_bucket" "example" {
 resource "aws_db_instance" "example" {
   identifier = "example-db"
   password   = "weak123"  # 🚨 EXPOSED_SECRETS and WEAK_PASSWORD rules
+}
+
+resource "aws_security_group" "open" {
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # 🚨 OPEN_PORTS rule
+  }
+}
+
+resource "aws_iam_role" "admin" {
+  inline_policy {
+    policy = jsonencode({
+      Statement = [{
+        Effect = "Allow"
+        Action = "*"  # 🚨 IAM_LEAST_PRIVILEGE rule
+        Resource = "*"
+      }]
+    })
+  }
 }
 ```
 
@@ -161,13 +266,27 @@ jobs:
       
       - name: Run Terraform Linter
         run: |
-          go run github.com/heyimusa/go-terraform-linter/cmd/linter@latest -o security-report.json
+          go run github.com/heyimusa/go-terraform-linter/cmd/linter@latest \
+            -f json -o security-report.json \
+            --exclude "*.tfvars,test/"
       
       - name: Upload Security Report
         uses: actions/upload-artifact@v3
         with:
           name: security-report
           path: security-report.json
+      
+      - name: SARIF Upload
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: security-report.sarif
+```
+
+### SonarQube Integration
+
+```bash
+# Generate SARIF report for SonarQube
+./tflint -f sarif -o sonar-report.sarif
 ```
 
 ### Pre-commit Hook
@@ -182,7 +301,15 @@ repos:
         entry: tflint
         language: system
         files: \.(tf|tfvars)$
+        args: ["-s", "medium", "-f", "json"]
 ```
+
+## Performance 🚀
+
+- **Parallel Processing**: Files are analyzed concurrently for faster results
+- **Efficient Parsing**: Optimized HCL parser for Terraform syntax
+- **Memory Efficient**: Streams results without loading entire codebase into memory
+- **Caching Ready**: Architecture supports future caching implementation
 
 ## Contributing 🤝
 
@@ -198,43 +325,34 @@ cd go-terraform-linter
 # Install dependencies
 go mod download
 
-# Run tests
-go test ./...
-
-# Build
+# Build and test
 go build -o tflint cmd/linter/main.go
-
-# Test with example files
-./tflint -c examples/
+./tflint -c examples/ -v
 ```
 
 ### Adding New Rules
 
 1. Create a new rule struct implementing the `Rule` interface
-2. Add the rule to the `registerRules()` function in `internal/rules/rules.go`
-3. Add tests for your rule
-4. Update this README with the new rule
+2. Add the rule to the `registerRules()` function
+3. Add fix suggestions in the `addFixSuggestion()` function
+4. Update tests and documentation
+
+## Roadmap 🗺️
+
+- [ ] **Plugin System**: Support for user-defined Go plugins
+- [ ] **Caching**: Cache results for unchanged files
+- [ ] **Incremental Scanning**: Only scan changed files
+- [ ] **Custom Rule Engine**: YAML/JSON-based custom rules
+- [ ] **IDE Integration**: VS Code, IntelliJ plugins
+- [ ] **Cloud Provider Rules**: Azure, GCP, and other providers
+- [ ] **Compliance Frameworks**: HIPAA, SOC2, PCI-DSS specific rules
 
 ## License 📄
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments 🙏
+## Support 💬
 
-- Inspired by security tools like [tfsec](https://github.com/aquasecurity/tfsec) and [checkov](https://github.com/bridgecrewio/checkov)
-- Built with [HCL](https://github.com/hashicorp/hcl) for Terraform parsing
-- Uses [Cobra](https://github.com/spf13/cobra) for CLI interface
-
-## Roadmap 🗺️
-
-- [ ] Support for Terraform modules
-- [ ] Custom rule configuration
-- [ ] Integration with more cloud providers (Azure, GCP)
-- [ ] SARIF output format
-- [ ] IDE integration (VS Code extension)
-- [ ] Performance optimizations
-- [ ] More security rules
-
----
-
-**Made with ❤️ for the security community** 
+- **Issues**: [GitHub Issues](https://github.com/heyimusa/go-terraform-linter/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/heyimusa/go-terraform-linter/discussions)
+- **Documentation**: [Wiki](https://github.com/heyimusa/go-terraform-linter/wiki) 

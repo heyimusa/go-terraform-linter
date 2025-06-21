@@ -41,6 +41,10 @@ func (re *RuleEngine) registerRules() {
 		&MissingBackupRule{},
 		&WeakCryptoRule{},
 		&ExcessivePermissionsRule{},
+		&OpenPortsRule{},
+		&IamLeastPrivilegeRule{},
+		&EncryptionComplianceRule{},
+		&CostOptimizationRule{},
 	}
 }
 
@@ -414,5 +418,143 @@ func (r *ExcessivePermissionsRule) Check(config *parser.Config) []Issue {
 		}
 	}
 
+	return issues
+}
+
+// New Rule: Open Ports in Security Groups
+type OpenPortsRule struct{}
+
+func (r *OpenPortsRule) GetName() string { return "OPEN_PORTS" }
+
+func (r *OpenPortsRule) Check(config *parser.Config) []Issue {
+	var issues []Issue
+	for _, block := range config.Blocks {
+		if block.Type == "resource" && len(block.Labels) > 0 &&
+			strings.Contains(block.Labels[0], "security_group") {
+			for _, nested := range block.Blocks {
+				if nested.Type == "ingress" {
+					cidr, hasCidr := nested.Attributes["cidr_blocks"]
+					fromPort, hasFrom := nested.Attributes["from_port"]
+					if hasCidr && hasFrom {
+						if cidrStr, ok := cidr.Value.(string); ok && cidrStr == "0.0.0.0/0" {
+							if from, ok := fromPort.Value.(int); ok {
+								if from == 22 || from == 3389 || from == 80 || from == 443 {
+									issues = append(issues, Issue{
+										Rule:        r.GetName(),
+										Message:     "Sensitive port open to the world",
+										Description: "Port opened to 0.0.0.0/0 (world). Restrict access to trusted IPs.",
+										Severity:    "high",
+										Line:        fromPort.Range.Start.Line,
+									})
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return issues
+}
+
+// New Rule: IAM Least Privilege
+type IamLeastPrivilegeRule struct{}
+
+func (r *IamLeastPrivilegeRule) GetName() string { return "IAM_LEAST_PRIVILEGE" }
+
+func (r *IamLeastPrivilegeRule) Check(config *parser.Config) []Issue {
+	var issues []Issue
+	for _, block := range config.Blocks {
+		if block.Type == "resource" && len(block.Labels) > 0 &&
+			strings.Contains(block.Labels[0], "iam_role") {
+			for _, nested := range block.Blocks {
+				if nested.Type == "inline_policy" {
+					if policy, exists := nested.Attributes["policy"]; exists {
+						if policyStr, ok := policy.Value.(string); ok {
+							if strings.Contains(policyStr, "\"Action\": \"*\"") &&
+								strings.Contains(policyStr, "\"Effect\": \"Allow\"") {
+								issues = append(issues, Issue{
+									Rule:        r.GetName(),
+									Message:     "IAM policy allows all actions (*)",
+									Description: "Use least privilege principle. Avoid wildcard actions.",
+									Severity:    "high",
+									Line:        policy.Range.Start.Line,
+								})
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return issues
+}
+
+// New Rule: Encryption Compliance
+type EncryptionComplianceRule struct{}
+
+func (r *EncryptionComplianceRule) GetName() string { return "ENCRYPTION_COMPLIANCE" }
+
+func (r *EncryptionComplianceRule) Check(config *parser.Config) []Issue {
+	var issues []Issue
+	for _, block := range config.Blocks {
+		if block.Type == "resource" && len(block.Labels) > 0 {
+			resourceType := block.Labels[0]
+			if resourceType == "aws_db_instance" || resourceType == "aws_ebs_volume" || resourceType == "aws_rds_cluster" {
+				if encrypted, exists := block.Attributes["encrypted"]; exists {
+					if enc, ok := encrypted.Value.(bool); ok && !enc {
+						issues = append(issues, Issue{
+							Rule:        r.GetName(),
+							Message:     "Encryption is not enabled",
+							Description: "Enable encryption for compliance (HIPAA, SOC2, PCI-DSS)",
+							Severity:    "critical",
+							Line:        encrypted.Range.Start.Line,
+						})
+					}
+				} else {
+					issues = append(issues, Issue{
+						Rule:        r.GetName(),
+						Message:     "Encryption attribute missing",
+						Description: "Enable encryption for compliance (HIPAA, SOC2, PCI-DSS)",
+						Severity:    "critical",
+						Line:        block.Range.Start.Line,
+					})
+				}
+			}
+		}
+	}
+	return issues
+}
+
+// New Rule: Cost Optimization (Large Instance Types)
+type CostOptimizationRule struct{}
+
+func (r *CostOptimizationRule) GetName() string { return "COST_OPTIMIZATION" }
+
+func (r *CostOptimizationRule) Check(config *parser.Config) []Issue {
+	var issues []Issue
+	largeTypes := []string{"m5.4xlarge", "m5.8xlarge", "c5.4xlarge", "c5.9xlarge", "r5.4xlarge", "r5.8xlarge"}
+	for _, block := range config.Blocks {
+		if block.Type == "resource" && len(block.Labels) > 0 {
+			resourceType := block.Labels[0]
+			if resourceType == "aws_instance" {
+				if instanceType, exists := block.Attributes["instance_type"]; exists {
+					if t, ok := instanceType.Value.(string); ok {
+						for _, large := range largeTypes {
+							if t == large {
+								issues = append(issues, Issue{
+									Rule:        r.GetName(),
+									Message:     "Large instance type used",
+									Description: "Consider using smaller instance types for cost savings",
+									Severity:    "medium",
+									Line:        instanceType.Range.Start.Line,
+								})
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	return issues
 } 

@@ -13,6 +13,11 @@ var (
 	outputPath string
 	severity   string
 	verbose    bool
+	format     string
+
+	excludePatterns []string
+	configFile      string
+	severityOverrides map[string]string
 )
 
 func main() {
@@ -25,9 +30,13 @@ resource misconfigurations, and infrastructure vulnerabilities.`,
 	}
 
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", ".", "Path to Terraform configuration directory")
-	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "", "Output file for detailed report (JSON)")
+	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "", "Output file for detailed report (JSON/SARIF/HTML)")
 	rootCmd.Flags().StringVarP(&severity, "severity", "s", "all", "Minimum severity level (low, medium, high, critical, all)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	rootCmd.Flags().StringVarP(&format, "format", "f", "text", "Output format: text, json, sarif, html")
+	rootCmd.Flags().StringSliceVar(&excludePatterns, "exclude", []string{}, "Exclude files matching these patterns (comma-separated)")
+	rootCmd.Flags().StringVar(&configFile, "config-file", "", "Path to YAML/JSON config file for custom rules and settings")
+	// For severity overrides, use config file or environment variable for now
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -37,32 +46,40 @@ resource misconfigurations, and infrastructure vulnerabilities.`,
 
 func runLint(cmd *cobra.Command, args []string) error {
 	linter := linter.NewLinter()
-	
-	// Configure linter
 	linter.SetSeverity(severity)
 	linter.SetVerbose(verbose)
-	
-	// Run linting
+	linter.SetExcludePatterns(excludePatterns)
+	linter.SetConfigFile(configFile)
+	// Severity overrides from config file will be loaded in linter
+
 	report, err := linter.Lint(configPath)
 	if err != nil {
 		return fmt.Errorf("linting failed: %w", err)
 	}
-	
-	// Display results
-	report.PrintSummary()
-	
+
+	// Display results in selected format
+	switch format {
+	case "json":
+		report.PrintJSON()
+	case "sarif":
+		report.PrintSARIF()
+	case "html":
+		report.PrintHTML()
+	default:
+		report.PrintSummary()
+	}
+
 	// Save detailed report if requested
 	if outputPath != "" {
-		if err := report.SaveToFile(outputPath); err != nil {
+		err := report.SaveToFileWithFormat(outputPath, format)
+		if err != nil {
 			return fmt.Errorf("failed to save report: %w", err)
 		}
 		fmt.Printf("\nDetailed report saved to: %s\n", outputPath)
 	}
-	
-	// Exit with error code if issues found
+
 	if report.HasIssues() {
 		os.Exit(1)
 	}
-	
 	return nil
 } 

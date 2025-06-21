@@ -17,6 +17,7 @@ type Issue struct {
 	Description string `json:"description"`
 	Severity    string `json:"severity"`
 	Line        int    `json:"line"`
+	FixSuggestion string `json:"fix_suggestion,omitempty"`
 }
 
 type Report struct {
@@ -49,7 +50,7 @@ func (r *Report) AddIssue(file, rule, message, description, severity string, lin
 		Severity:    severity,
 		Line:        line,
 	}
-	
+	r.addFixSuggestion(&issue)
 	r.Issues = append(r.Issues, issue)
 	r.updateStats(severity)
 }
@@ -63,7 +64,7 @@ func (r *Report) AddError(file, rule, message, description, severity string) {
 		Severity:    severity,
 		Line:        0,
 	}
-	
+	r.addFixSuggestion(&issue)
 	r.Issues = append(r.Issues, issue)
 	r.updateStats(severity)
 }
@@ -219,4 +220,147 @@ func sortedKeys(m map[string][]Issue) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func (r *Report) addFixSuggestion(issue *Issue) {
+	switch issue.Rule {
+	case "MISSING_TAGS":
+		issue.FixSuggestion = "Add a 'tags' block with appropriate key-value pairs."
+	case "UNENCRYPTED_STORAGE", "ENCRYPTION_COMPLIANCE":
+		issue.FixSuggestion = "Set 'encrypted = true' for this resource."
+	case "PUBLIC_ACCESS", "OPEN_PORTS":
+		issue.FixSuggestion = "Restrict 'cidr_blocks' to trusted IP ranges."
+	case "WEAK_PASSWORD":
+		issue.FixSuggestion = "Use a password with at least 8 characters, including numbers and symbols."
+	case "EXPOSED_SECRETS":
+		issue.FixSuggestion = "Store secrets in variables or secret management systems."
+	case "DEPRECATED_RESOURCES":
+		issue.FixSuggestion = "Use the recommended resource type instead."
+	case "COST_OPTIMIZATION":
+		issue.FixSuggestion = "Consider using a smaller instance type."
+	case "IAM_LEAST_PRIVILEGE":
+		issue.FixSuggestion = "Avoid using 'Action: *' and 'Resource: *' in IAM policies."
+	case "WEAK_CRYPTO":
+		issue.FixSuggestion = "Use TLSv1.2 or higher."
+	case "MISSING_BACKUP":
+		issue.FixSuggestion = "Set 'backup_retention_period' to a value greater than 0."
+	}
+}
+
+func (r *Report) PrintJSON() {
+	out, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		fmt.Println("Failed to marshal JSON report:", err)
+		return
+	}
+	fmt.Println(string(out))
+}
+
+func (r *Report) PrintSARIF() {
+	sarif := map[string]interface{}{
+		"version": "2.1.0",
+		"runs": []interface{}{
+			map[string]interface{}{
+				"tool": map[string]interface{}{
+					"driver": map[string]interface{}{
+						"name": "go-terraform-linter",
+						"informationUri": "https://github.com/heyimusa/go-terraform-linter",
+					},
+				},
+				"results": []interface{}{},
+			},
+		},
+	}
+	results := []interface{}{}
+	for _, issue := range r.Issues {
+		results = append(results, map[string]interface{}{
+			"ruleId": issue.Rule,
+			"message": map[string]string{"text": issue.Message + ". Suggestion: " + issue.FixSuggestion},
+			"locations": []interface{}{
+				map[string]interface{}{
+					"physicalLocation": map[string]interface{}{
+						"artifactLocation": map[string]string{"uri": issue.File},
+						"region": map[string]int{"startLine": issue.Line},
+					},
+				},
+			},
+			"level": strings.ToLower(issue.Severity),
+		})
+	}
+	sarif["runs"].([]interface{})[0].(map[string]interface{})["results"] = results
+	out, err := json.MarshalIndent(sarif, "", "  ")
+	if err != nil {
+		fmt.Println("Failed to marshal SARIF report:", err)
+		return
+	}
+	fmt.Println(string(out))
+}
+
+func (r *Report) PrintHTML() {
+	fmt.Println("<html><head><title>Terraform Linter Report</title></head><body>")
+	fmt.Println("<h1>Terraform Linter Report</h1>")
+	fmt.Println("<table border='1'><tr><th>File</th><th>Rule</th><th>Message</th><th>Severity</th><th>Line</th><th>Fix Suggestion</th></tr>")
+	for _, issue := range r.Issues {
+		fmt.Printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td></tr>\n",
+			issue.File, issue.Rule, issue.Message, issue.Severity, issue.Line, issue.FixSuggestion)
+	}
+	fmt.Println("</table></body></html>")
+}
+
+func (r *Report) SaveToFileWithFormat(filename, format string) error {
+	var out []byte
+	var err error
+	switch format {
+	case "json":
+		out, err = json.MarshalIndent(r, "", "  ")
+	case "sarif":
+		sarif := map[string]interface{}{
+			"version": "2.1.0",
+			"runs": []interface{}{
+				map[string]interface{}{
+					"tool": map[string]interface{}{
+						"driver": map[string]interface{}{
+							"name": "go-terraform-linter",
+							"informationUri": "https://github.com/heyimusa/go-terraform-linter",
+						},
+					},
+					"results": []interface{}{},
+				},
+			},
+		}
+		results := []interface{}{}
+		for _, issue := range r.Issues {
+			results = append(results, map[string]interface{}{
+				"ruleId": issue.Rule,
+				"message": map[string]string{"text": issue.Message + ". Suggestion: " + issue.FixSuggestion},
+				"locations": []interface{}{
+					map[string]interface{}{
+						"physicalLocation": map[string]interface{}{
+							"artifactLocation": map[string]string{"uri": issue.File},
+							"region": map[string]int{"startLine": issue.Line},
+						},
+					},
+				},
+				"level": strings.ToLower(issue.Severity),
+			})
+		}
+		sarif["runs"].([]interface{})[0].(map[string]interface{})["results"] = results
+		out, err = json.MarshalIndent(sarif, "", "  ")
+	case "html":
+		html := "<html><head><title>Terraform Linter Report</title></head><body>"
+		html += "<h1>Terraform Linter Report</h1>"
+		html += "<table border='1'><tr><th>File</th><th>Rule</th><th>Message</th><th>Severity</th><th>Line</th><th>Fix Suggestion</th></tr>"
+		for _, issue := range r.Issues {
+			html += fmt.Sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td></tr>",
+				issue.File, issue.Rule, issue.Message, issue.Severity, issue.Line, issue.FixSuggestion)
+		}
+		html += "</table></body></html>"
+		out = []byte(html)
+	default:
+		out, err = json.MarshalIndent(r, "", "  ")
+	}
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filename, out, 0644)
 } 
