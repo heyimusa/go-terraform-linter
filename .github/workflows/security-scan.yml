@@ -36,7 +36,7 @@ jobs:
         cache: true
 
     - name: Cache Go modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/go-build
@@ -196,7 +196,7 @@ jobs:
 
     - name: Archive Security Reports
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: terraform-security-reports
         path: |
