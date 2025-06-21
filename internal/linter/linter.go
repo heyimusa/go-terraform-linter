@@ -10,7 +10,9 @@ import (
 	"github.com/heyimusa/go-terraform-linter/internal/parser"
 	"github.com/heyimusa/go-terraform-linter/internal/report"
 	"github.com/heyimusa/go-terraform-linter/internal/rules"
-	"gopkg.in/yaml.v3"
+	"github.com/heyimusa/go-terraform-linter/internal/rules/custom"
+	yaml "gopkg.in/yaml.v3"
+	"github.com/heyimusa/go-terraform-linter/internal/types"
 )
 
 type Linter struct {
@@ -28,23 +30,6 @@ type Linter struct {
 	plugins         []interface{} // TODO: Define plugin interface
 }
 
-// CustomRule struct for YAML/JSON-based rules
-// Only simple attribute checks for now
-// Example:
-// - resource_type: aws_s3_bucket
-//   attribute: acl
-//   equals: public-read
-//   message: S3 bucket is public
-//   severity: high
-
-type CustomRule struct {
-	ResourceType string `yaml:"resource_type" json:"resource_type"`
-	Attribute    string `yaml:"attribute" json:"attribute"`
-	Equals       interface{} `yaml:"equals" json:"equals"`
-	Message      string `yaml:"message" json:"message"`
-	Severity     string `yaml:"severity" json:"severity"`
-}
-
 func NewLinter() *Linter {
 	return &Linter{
 		severity: "all",
@@ -57,6 +42,17 @@ func NewLinter() *Linter {
 		severityOverrides: map[string]string{},
 		plugins:         []interface{}{},
 	}
+}
+
+// Add methods to set config/customization
+func (l *Linter) SetExcludePatterns(patterns []string) {
+	l.excludePatterns = patterns
+}
+func (l *Linter) SetConfigFile(path string) {
+	l.configFile = path
+}
+func (l *Linter) SetSeverityOverrides(overrides map[string]string) {
+	l.severityOverrides = overrides
 }
 
 func (l *Linter) SetSeverity(severity string) {
@@ -82,7 +78,7 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 			var cfg struct {
 				Exclude []string `yaml:"exclude" json:"exclude"`
 				Severity map[string]string `yaml:"severity" json:"severity"`
-				CustomRules []CustomRule `yaml:"custom_rules" json:"custom_rules"`
+				CustomRules []custom.CustomRule `yaml:"custom_rules" json:"custom_rules"`
 			}
 			if strings.HasSuffix(l.configFile, ".json") {
 				_ = json.Unmarshal(data, &cfg)
@@ -93,7 +89,7 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 			l.severityOverrides = cfg.Severity
 			l.customRules = []rules.Rule{}
 			for _, cr := range cfg.CustomRules {
-				l.customRules = append(l.customRules, cr.ToRule())
+				l.customRules = append(l.customRules, cr)
 			}
 		}
 	}
@@ -107,11 +103,27 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 	if l.verbose {
 		fmt.Printf("Found %d Terraform files to analyze\n", len(tfFiles))
 	}
+
+	// Exclude files matching patterns
+	filteredFiles := []string{}
+	for _, file := range tfFiles {
+		excluded := false
+		for _, pat := range l.excludePatterns {
+			if strings.Contains(file, pat) {
+				excluded = true
+				break
+			}
+		}
+		if !excluded {
+			filteredFiles = append(filteredFiles, file)
+		}
+	}
+	tfFiles = filteredFiles
 	
 	// --- Parallel file analysis ---
 	type result struct {
 		file   string
-		issues []rules.Issue
+		issues []types.Issue
 		err    error
 	}
 	results := make(chan result, len(tfFiles))
@@ -155,6 +167,13 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 		fmt.Fprintf(os.Stderr, "Warning: %d file(s) could not be parsed. Partial results shown.\n", parseErrors)
 	}
 	
+	// Apply severity overrides after collecting issues
+	for i, issue := range report.Issues {
+		if sev, ok := l.severityOverrides[issue.Rule]; ok {
+			report.Issues[i].Severity = sev
+		}
+	}
+	
 	// --- Incremental scan stub: only scan changed files ---
 	// TODO: Implement incremental scanning for large codebases
 	
@@ -186,39 +205,4 @@ func (l *Linter) findTerraformFiles(root string) ([]string, error) {
 	})
 	
 	return files, err
-}
-
-// Add methods to set config/customization
-func (l *Linter) SetExcludePatterns(patterns []string) {
-	l.excludePatterns = patterns
-}
-func (l *Linter) SetConfigFile(path string) {
-	l.configFile = path
-}
-func (l *Linter) SetSeverityOverrides(overrides map[string]string) {
-	l.severityOverrides = overrides
-}
-
-// CustomRule implements rules.Rule
-func (cr CustomRule) GetName() string {
-	return "CUSTOM_RULE: " + cr.ResourceType + "." + cr.Attribute
-}
-func (cr CustomRule) Check(config *parser.Config) []rules.Issue {
-	var issues []rules.Issue
-	for _, block := range config.Blocks {
-		if block.Type == "resource" && len(block.Labels) > 0 && block.Labels[0] == cr.ResourceType {
-			if attr, ok := block.Attributes[cr.Attribute]; ok {
-				if attr.Value == cr.Equals {
-					issues = append(issues, rules.Issue{
-						Rule:        cr.GetName(),
-						Message:     cr.Message,
-						Description: cr.Message,
-						Severity:    cr.Severity,
-						Line:        attr.Range.Start.Line,
-					})
-				}
-			}
-		}
-	}
-	return issues
 } 

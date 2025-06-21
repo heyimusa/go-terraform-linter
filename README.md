@@ -15,6 +15,167 @@ A fast and comprehensive security-focused Terraform linter written in Go. This t
 - **Severity Filtering**: Filter issues by severity level
 - **Multiple File Support**: Scans `.tf`, `.tfvars`, and `.tf.json` files
 
+## Architecture 🏗️
+
+The linter follows a modular architecture designed for maintainability, extensibility, and clear separation of concerns:
+
+### Directory Structure
+
+```
+go-terraform-linter/
+├── cmd/
+│   └── linter/
+│       └── main.go              # CLI entry point
+├── internal/
+│   ├── cache/                   # Caching layer (future)
+│   ├── linter/
+│   │   └── linter.go           # Core linting engine
+│   ├── parser/
+│   │   └── parser.go           # Terraform HCL parser
+│   ├── report/
+│   │   ├── formats/            # Output format handlers
+│   │   └── report.go           # Report generation
+│   ├── rules/
+│   │   ├── custom/
+│   │   │   └── yaml.go         # Custom rule support
+│   │   ├── security/           # Security rule modules
+│   │   │   ├── auth.go         # Authentication & IAM rules
+│   │   │   ├── best_practices.go # General security practices
+│   │   │   ├── cost.go         # Cost optimization rules
+│   │   │   ├── network.go      # Network security rules
+│   │   │   └── storage.go      # Storage & encryption rules
+│   │   ├── engine.go           # Rule execution engine
+│   │   └── interface.go        # Rule interface definitions
+│   └── types/
+│       └── types.go            # Shared data structures
+├── examples/
+│   └── main.tf                 # Example Terraform files
+└── docs/                       # Documentation
+```
+
+### Core Components
+
+#### 1. **Parser** (`internal/parser/`)
+- **Purpose**: Parse Terraform HCL files into structured data
+- **Key Features**: 
+  - HCL syntax parsing with `hclsyntax` package
+  - Block and attribute extraction
+  - Error handling for malformed files
+  - Support for `.tf`, `.tfvars`, and `.tf.json` files
+
+#### 2. **Rules Engine** (`internal/rules/`)
+- **Purpose**: Execute security rules against parsed Terraform configurations
+- **Architecture**:
+  - **Interface-based**: All rules implement the `Rule` interface
+  - **Modular**: Rules organized by security domain
+  - **Extensible**: Easy to add new rules without modifying existing code
+  - **Parallel**: Rules can be executed concurrently for performance
+
+#### 3. **Security Rules** (`internal/rules/security/`)
+Organized into specialized modules:
+
+- **`auth.go`**: Authentication and IAM security
+  - IAM least privilege violations
+  - Excessive permissions detection
+  - Weak authentication configurations
+
+- **`network.go`**: Network security and access control
+  - Public access detection
+  - Open port analysis
+  - Security group misconfigurations
+
+- **`storage.go`**: Storage and encryption security
+  - Unencrypted storage detection
+  - Backup configuration validation
+  - Encryption compliance checks
+
+- **`best_practices.go`**: General security best practices
+  - Resource tagging requirements
+  - Deprecated resource detection
+  - Configuration best practices
+
+- **`cost.go`**: Cost optimization and resource efficiency
+  - Expensive instance type detection
+  - Resource sizing recommendations
+  - Cost optimization suggestions
+
+#### 4. **Custom Rules** (`internal/rules/custom/`)
+- **Purpose**: Support for user-defined rules
+- **Features**:
+  - YAML/JSON-based rule definitions
+  - Dynamic rule loading
+  - Custom severity levels
+  - Extensible rule engine
+
+#### 5. **Report Generation** (`internal/report/`)
+- **Purpose**: Generate formatted security reports
+- **Supported Formats**:
+  - **Text**: Human-readable console output
+  - **JSON**: Machine-readable structured data
+  - **SARIF**: Static Analysis Results Interchange Format
+  - **HTML**: Web-friendly detailed reports
+
+#### 6. **Types** (`internal/types/`)
+- **Purpose**: Shared data structures across packages
+- **Key Types**:
+  - `Issue`: Standardized issue representation
+  - `Block`: Parsed Terraform block structure
+  - `Attribute`: Parsed attribute information
+
+### Design Principles
+
+#### 1. **Separation of Concerns**
+- Each package has a single, well-defined responsibility
+- Clear boundaries between parsing, analysis, and reporting
+- Minimal coupling between components
+
+#### 2. **Interface-based Design**
+- Rules implement a common interface for consistency
+- Easy to add new rule types without modifying existing code
+- Testable components with clear contracts
+
+#### 3. **Modularity**
+- Security rules split by domain for better organization
+- Independent modules that can be developed and tested separately
+- Clear import structure to avoid circular dependencies
+
+#### 4. **Extensibility**
+- Plugin architecture for custom rules
+- Configuration-driven behavior
+- Multiple output format support
+
+#### 5. **Performance**
+- Parallel processing where possible
+- Efficient parsing with minimal memory usage
+- Caching-ready architecture for future optimizations
+
+### Adding New Rules
+
+To add a new security rule:
+
+1. **Choose the appropriate module** in `internal/rules/security/`
+2. **Implement the Rule interface**:
+   ```go
+   type Rule interface {
+       Name() string
+       Description() string
+       Severity() string
+       Check(block *types.Block) []*types.Issue
+   }
+   ```
+3. **Register the rule** in the appropriate module's `init()` function
+4. **Add tests** for the new rule
+5. **Update documentation** with rule details
+
+### Benefits of Modular Architecture
+
+- **Maintainability**: Easy to locate and modify specific functionality
+- **Testability**: Each module can be tested independently
+- **Scalability**: New rules and features can be added without affecting existing code
+- **Team Development**: Multiple developers can work on different modules simultaneously
+- **Code Reuse**: Common functionality shared across modules
+- **Performance**: Optimized imports and reduced memory footprint
+
 ## Security Rules 🛡️
 
 | Rule | Severity | Description |
