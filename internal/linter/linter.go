@@ -16,6 +16,14 @@ type Linter struct {
 	verbose  bool
 	parser   *parser.Parser
 	rules    *rules.RuleEngine
+
+	// New fields for config/customization
+	excludePatterns []string
+	configFile      string
+	customRules     []rules.Rule
+	severityOverrides map[string]string
+	// Plugin system stub
+	plugins         []interface{} // TODO: Define plugin interface
 }
 
 func NewLinter() *Linter {
@@ -24,6 +32,11 @@ func NewLinter() *Linter {
 		verbose:  false,
 		parser:   parser.NewParser(),
 		rules:    rules.NewRuleEngine(),
+		excludePatterns: []string{},
+		configFile:      "",
+		customRules:     []rules.Rule{},
+		severityOverrides: map[string]string{},
+		plugins:         []interface{}{},
 	}
 }
 
@@ -127,4 +140,15 @@ func (l *Linter) findTerraformFiles(root string) ([]string, error) {
 	})
 	
 	return files, err
+}
+
+// Add methods to set config/customization
+func (l *Linter) SetExcludePatterns(patterns []string) {
+	l.excludePatterns = patterns
+}
+func (l *Linter) SetConfigFile(path string) {
+	l.configFile = path
+}
+func (l *Linter) SetSeverityOverrides(overrides map[string]string) {
+	l.severityOverrides = overrides
 } 
