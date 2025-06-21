@@ -56,7 +56,7 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 	// --- Parallel file analysis ---
 	type result struct {
 		file   string
-		issues []report.Issue
+		issues []rules.Issue
 		err    error
 	}
 	results := make(chan result, len(tfFiles))
