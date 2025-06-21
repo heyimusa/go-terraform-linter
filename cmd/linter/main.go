@@ -22,10 +22,11 @@ var (
 
 func main() {
 	var rootCmd = &cobra.Command{
-		Use:   "tflint",
+		Use:   "tflint [path]",
 		Short: "A security-focused Terraform linter",
 		Long: `A fast and comprehensive Terraform linter that focuses on security best practices,
 resource misconfigurations, and infrastructure vulnerabilities.`,
+		Args:  cobra.MaximumNArgs(1),
 		RunE: runLint,
 	}
 
@@ -45,12 +46,21 @@ resource misconfigurations, and infrastructure vulnerabilities.`,
 }
 
 func runLint(cmd *cobra.Command, args []string) error {
+	// Use positional argument if provided, otherwise use flag
+	if len(args) > 0 {
+		configPath = args[0]
+	}
+
 	linter := linter.NewLinter()
 	linter.SetSeverity(severity)
 	linter.SetVerbose(verbose)
 	linter.SetExcludePatterns(excludePatterns)
 	linter.SetConfigFile(configFile)
 	// Severity overrides from config file will be loaded in linter
+
+	if verbose {
+		fmt.Printf("DEBUG: Config path: %s\n", configPath)
+	}
 
 	report, err := linter.Lint(configPath)
 	if err != nil {

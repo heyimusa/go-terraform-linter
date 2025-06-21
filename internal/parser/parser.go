@@ -8,10 +8,11 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/heyimusa/go-terraform-linter/internal/types"
 )
 
 type Config struct {
-	Blocks []Block
+	Blocks []types.Block
 }
 
 type Block struct {
@@ -23,9 +24,10 @@ type Block struct {
 }
 
 type Attribute struct {
-	Name  string
-	Value interface{}
-	Range hcl.Range
+	Name     string
+	Value    interface{}
+	RawValue string
+	Range    hcl.Range
 }
 
 type Parser struct {
@@ -78,8 +80,8 @@ func (p *Parser) ParseFile(filename string) (*Config, error) {
 	return config, nil
 }
 
-func (p *Parser) extractBlocks(body hcl.Body) []Block {
-	var blocks []Block
+func (p *Parser) extractBlocks(body hcl.Body) []types.Block {
+	var blocks []types.Block
 
 	// Try to parse as HCL syntax first
 	if syntaxBody, ok := body.(*hclsyntax.Body); ok {
@@ -94,10 +96,10 @@ func (p *Parser) extractBlocks(body hcl.Body) []Block {
 
 	// Process each block
 	for _, block := range content.Blocks {
-		tfBlock := Block{
+		tfBlock := types.Block{
 			Type:       block.Type,
 			Labels:     block.Labels,
-			Attributes: make(map[string]Attribute),
+			Attributes: make(map[string]types.Attribute),
 			Range:      block.DefRange,
 		}
 
@@ -105,10 +107,12 @@ func (p *Parser) extractBlocks(body hcl.Body) []Block {
 		attrs, _ := block.Body.JustAttributes()
 		for name, attr := range attrs {
 			val, _ := attr.Expr.Value(nil)
-			tfBlock.Attributes[name] = Attribute{
-				Name:  name,
-				Value: val,
-				Range: attr.Range,
+			rawValue := fmt.Sprintf("%v", val) // Capture the raw string representation
+			tfBlock.Attributes[name] = types.Attribute{
+				Name:     name,
+				Value:    val,
+				RawValue: rawValue,
+				Range:    attr.Range,
 			}
 		}
 
@@ -120,24 +124,26 @@ func (p *Parser) extractBlocks(body hcl.Body) []Block {
 	return blocks
 }
 
-func (p *Parser) extractBlocksFromSyntax(body *hclsyntax.Body) []Block {
-	var blocks []Block
+func (p *Parser) extractBlocksFromSyntax(body *hclsyntax.Body) []types.Block {
+	var blocks []types.Block
 
 	for _, block := range body.Blocks {
-		tfBlock := Block{
+		tfBlock := types.Block{
 			Type:       block.Type,
 			Labels:     block.Labels,
-			Attributes: make(map[string]Attribute),
+			Attributes: make(map[string]types.Attribute),
 			Range:      block.DefRange(),
 		}
 
 		// Extract attributes
 		for name, attr := range block.Body.Attributes {
 			val, _ := attr.Expr.Value(nil)
-			tfBlock.Attributes[name] = Attribute{
-				Name:  name,
-				Value: val,
-				Range: attr.SrcRange,
+			rawValue := fmt.Sprintf("%v", val) // Capture the raw string representation
+			tfBlock.Attributes[name] = types.Attribute{
+				Name:     name,
+				Value:    val,
+				RawValue: rawValue,
+				Range:    attr.SrcRange,
 			}
 		}
 

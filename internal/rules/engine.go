@@ -81,6 +81,37 @@ func (re *RuleEngine) registerRules() {
 
 		// Cost Optimization Rules
 		&security.CostOptimizationRule{},
+
+		// Azure Security Rules
+		&security.AzurePublicAccessRule{},
+		&security.AzureUnencryptedStorageRule{},
+		&security.AzureWeakPasswordRule{},
+		&security.AzureMissingTagsRule{},
+		&security.AzureExposedSecretsRule{},
+		&security.AzureUnrestrictedIngressRule{},
+		&security.AzureDeprecatedResourcesRule{},
+		&security.AzureMissingBackupRule{},
+		&security.AzureWeakCryptoRule{},
+		&security.AzureExcessivePermissionsRule{},
+		&security.AzureOpenPortsRule{},
+		&security.AzureEncryptionComplianceRule{},
+		&security.AzureCostOptimizationRule{},
+		&security.AzureWeakAuthenticationRule{},
+
+		// AWS Security Rules
+		&security.AWSExposedSecretsRule{},
+		&security.AWSPublicS3BucketRule{},
+		&security.AWSUnencryptedStorageRule{},
+		&security.AWSWeakPasswordsRule{},
+		&security.AWSMissingTagsRule{},
+		&security.AWSUnrestrictedIngressRule{},
+		&security.AWSDeprecatedResourcesRule{},
+		&security.AWSMissingBackupRule{},
+		&security.AWSWeakCryptoRule{},
+		&security.AWSExcessivePermissionsRule{},
+		&security.AWSOpenPortsRule{},
+		&security.AWSEncryptionComplianceRule{},
+		&security.AWSCostOptimizationRule{},
 	}
 }
 

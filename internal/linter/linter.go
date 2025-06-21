@@ -198,11 +198,18 @@ func (l *Linter) findTerraformFiles(root string) ([]string, error) {
 			ext := filepath.Ext(path)
 			if ext == ".tf" || ext == ".tfvars" || strings.HasSuffix(path, ".tf.json") {
 				files = append(files, path)
+				if l.verbose {
+					fmt.Printf("DEBUG: Found Terraform file: %s\n", path)
+				}
 			}
 		}
 		
 		return nil
 	})
+	
+	if l.verbose {
+		fmt.Printf("DEBUG: Total Terraform files found: %d\n", len(files))
+	}
 	
 	return files, err
 } 

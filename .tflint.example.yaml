@@ -1,0 +1,222 @@
+# Example configuration file for Go Terraform Linter
+# Copy this file to .tflint.yaml and customize as needed
+
+# Exclude patterns using glob syntax
+# Files matching these patterns will be skipped during scanning
+exclude:
+  - "test/*"                    # Skip all files in test directories
+  - "*.backup.tf"              # Skip backup files
+  - "vendor/*"                 # Skip vendor directories
+  - "*.tfvars.example"         # Skip example variable files
+  - ".terraform/*"             # Skip Terraform state directories
+  - "**/.git/*"                # Skip git directories
+
+# Override rule severities
+# Available severities: critical, high, medium, low
+severity:
+  # Azure Rules
+  AZURE_EXPOSED_SECRETS: "critical"
+  AZURE_PUBLIC_ACCESS: "high"
+  AZURE_UNENCRYPTED_STORAGE: "high"
+  AZURE_WEAK_PASSWORD: "medium"
+  AZURE_MISSING_TAGS: "low"
+  AZURE_UNRESTRICTED_INGRESS: "critical"
+  AZURE_DEPRECATED_RESOURCES: "medium"
+  AZURE_MISSING_BACKUP: "medium"
+  AZURE_WEAK_CRYPTO: "high"
+  AZURE_EXCESSIVE_PERMISSIONS: "high"
+  AZURE_OPEN_PORTS: "medium"
+  AZURE_ENCRYPTION_COMPLIANCE: "high"
+  AZURE_COST_OPTIMIZATION: "low"
+  AZURE_WEAK_AUTHENTICATION: "high"
+  
+  # AWS Rules
+  AWS_EXPOSED_SECRETS: "critical"
+  AWS_PUBLIC_S3_BUCKET: "critical"
+  AWS_UNENCRYPTED_STORAGE: "high"
+  AWS_WEAK_PASSWORDS: "high"
+  AWS_MISSING_TAGS: "low"
+  AWS_UNRESTRICTED_INGRESS: "critical"
+  AWS_DEPRECATED_RESOURCES: "medium"
+  AWS_MISSING_BACKUP: "medium"
+  AWS_WEAK_CRYPTO: "high"
+  AWS_EXCESSIVE_PERMISSIONS: "high"
+  AWS_OPEN_PORTS: "medium"
+  AWS_ENCRYPTION_COMPLIANCE: "high"
+  AWS_COST_OPTIMIZATION: "low"
+  
+  # General Rules
+  EXPOSED_SECRETS: "critical"
+  PUBLIC_ACCESS: "high"
+  UNENCRYPTED_STORAGE: "high"
+  WEAK_PASSWORD: "medium"
+  MISSING_TAGS: "low"
+  UNRESTRICTED_INGRESS: "critical"
+  DEPRECATED_RESOURCES: "medium"
+  MISSING_BACKUP: "medium"
+  WEAK_CRYPTO: "high"
+  EXCESSIVE_PERMISSIONS: "high"
+  OPEN_PORTS: "medium"
+  ENCRYPTION_COMPLIANCE: "critical"
+  COST_OPTIMIZATION: "low"
+
+# Custom rules (YAML-based rule definitions)
+# These rules will be evaluated in addition to built-in rules
+custom_rules:
+  # Example: Enforce naming convention
+  - name: "CUSTOM_NAMING_CONVENTION"
+    description: "Resources must follow company naming convention"
+    severity: "medium"
+    pattern: "^(dev|staging|prod)-[a-z0-9-]+$"
+    resource_types:
+      - "aws_instance"
+      - "azurerm_virtual_machine"
+      - "aws_s3_bucket"
+      - "azurerm_storage_account"
+    attribute: "name"
+    
+  # Example: Require specific tags
+  - name: "CUSTOM_REQUIRED_TAGS"
+    description: "Resources must have required tags"
+    severity: "medium"
+    required_tags:
+      - "Environment"
+      - "Owner"
+      - "Project"
+      - "CostCenter"
+    resource_types:
+      - "aws_instance"
+      - "azurerm_virtual_machine"
+      - "aws_s3_bucket"
+      - "azurerm_storage_account"
+      
+  # Example: Enforce encryption
+  - name: "CUSTOM_ENCRYPTION_REQUIRED"
+    description: "All storage resources must be encrypted"
+    severity: "high"
+    required_attributes:
+      - "encrypted"
+      - "encryption"
+      - "server_side_encryption_configuration"
+    resource_types:
+      - "aws_ebs_volume"
+      - "aws_s3_bucket"
+      - "azurerm_managed_disk"
+      - "azurerm_storage_account"
+
+# Rule-specific configuration
+rule_config:
+  # Configure AWS rules
+  AWS_MISSING_TAGS:
+    required_tags:
+      - "Environment"
+      - "Owner"
+      - "Project"
+    
+  AWS_COST_OPTIMIZATION:
+    max_instance_types:
+      - "t3.micro"
+      - "t3.small"
+      - "t3.medium"
+    expensive_threshold: 100  # USD per month
+    
+  # Configure Azure rules
+  AZURE_MISSING_TAGS:
+    required_tags:
+      - "environment"
+      - "owner"
+      - "project"
+      - "cost-center"
+      
+  AZURE_COST_OPTIMIZATION:
+    max_vm_sizes:
+      - "Standard_B1s"
+      - "Standard_B2s"
+      - "Standard_D2s_v3"
+
+# Output configuration
+output:
+  # Default output format: text, json, sarif, html
+  format: "text"
+  
+  # Include fix suggestions in output
+  include_fix_suggestions: true
+  
+  # Show rule descriptions
+  show_descriptions: true
+  
+  # Color output (auto, always, never)
+  color: "auto"
+  
+  # Minimum severity to report (critical, high, medium, low, all)
+  min_severity: "all"
+
+# Performance settings
+performance:
+  # Maximum number of concurrent file processors
+  max_workers: 10
+  
+  # Enable caching for faster subsequent runs
+  enable_cache: true
+  
+  # Cache directory
+  cache_dir: ".tflint-cache"
+
+# Integration settings
+integrations:
+  # GitHub integration
+  github:
+    # Upload SARIF results to GitHub Security tab
+    upload_sarif: true
+    
+    # GitHub token (use environment variable GITHUB_TOKEN)
+    token_env: "GITHUB_TOKEN"
+    
+  # Slack notifications
+  slack:
+    # Webhook URL for notifications
+    webhook_url_env: "SLACK_WEBHOOK_URL"
+    
+    # Only notify on critical/high issues
+    min_severity: "high"
+    
+  # Email notifications
+  email:
+    # SMTP configuration
+    smtp_server: "smtp.company.com"
+    smtp_port: 587
+    from_email: "security@company.com"
+    to_emails:
+      - "devops@company.com"
+      - "security-team@company.com"
+
+# Reporting configuration
+reporting:
+  # Generate detailed HTML report
+  html_report: true
+  
+  # Include metrics and statistics
+  include_metrics: true
+  
+  # Generate trend analysis (requires historical data)
+  trend_analysis: true
+  
+  # Report template customization
+  template:
+    company_name: "Your Company"
+    logo_url: "https://company.com/logo.png"
+    custom_css: "custom-styles.css"
+
+# Development and debugging
+debug:
+  # Enable verbose logging
+  verbose: false
+  
+  # Enable debug output
+  debug_mode: false
+  
+  # Log file location
+  log_file: "tflint.log"
+  
+  # Profile performance
+  enable_profiling: false 

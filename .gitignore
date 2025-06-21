@@ -5,18 +5,22 @@
 *.so
 *.dylib
 tflint
+go-terraform-linter
 
 # Test binary, built with `go test -c`
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+*.cov
+coverage.html
 
 # Dependency directories (remove the comment below to include it)
 /vendor/
 
 # Go workspace file
 go.work
+go.work.sum
 
 # IDE files
 .vscode/
@@ -24,6 +28,7 @@ go.work
 *.swp
 *.swo
 *~
+.DS_Store
 
 # OS generated files
 .DS_Store
@@ -36,16 +41,53 @@ Thumbs.db
 
 # Logs
 *.log
+tflint.log
 
-# Reports
+# Reports and output files
 *.json
+*.sarif
+*.html
 !go.mod
 !go.sum
+!package.json
+!package-lock.json
+
+# Security scan results
+security-results*.json
+security-results*.sarif
+security-summary.md
 
 # Build artifacts
 dist/
 build/
+bin/
 
-# Test/coverage
-*.coverprofile
-coverage/ 
+# Terraform files (for testing)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# Cache directories
+.tflint-cache/
+.cache/
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documentation build
+docs/_build/
+site/
+
+# Release files
+releases/ 

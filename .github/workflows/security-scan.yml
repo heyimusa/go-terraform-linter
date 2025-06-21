@@ -1,0 +1,256 @@
+name: Terraform Security Scan
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run security scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  terraform-security-scan:
+    name: Terraform Security Analysis
+    runs-on: ubuntu-latest
+    
+    permissions:
+      # Required for uploading SARIF results to GitHub Security tab
+      security-events: write
+      # Required for checking out the repository
+      contents: read
+      # Required for commenting on pull requests
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Fetch full history for better analysis
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download and build Terraform Linter
+      run: |
+        git clone https://github.com/heyimusa/go-terraform-linter.git /tmp/tflint
+        cd /tmp/tflint
+        go build -o tflint cmd/linter/main.go
+        sudo mv tflint /usr/local/bin/
+        chmod +x /usr/local/bin/tflint
+
+    - name: Verify Terraform Linter installation
+      run: |
+        tflint --version || echo "Version command not available"
+        which tflint
+
+    - name: Find Terraform directories
+      id: find-terraform
+      run: |
+        # Find all directories containing .tf files
+        TERRAFORM_DIRS=$(find . -name "*.tf" -type f | xargs dirname | sort -u | tr '\n' ' ')
+        echo "terraform_dirs=${TERRAFORM_DIRS}" >> $GITHUB_OUTPUT
+        echo "Found Terraform directories: ${TERRAFORM_DIRS}"
+
+    - name: Run Terraform Security Scan (Text Output)
+      if: steps.find-terraform.outputs.terraform_dirs != ''
+      run: |
+        echo "🔍 Running Terraform Security Scan..."
+        for dir in ${{ steps.find-terraform.outputs.terraform_dirs }}; do
+          echo "📁 Scanning directory: $dir"
+          tflint -v "$dir" || true
+        done
+
+    - name: Run Terraform Security Scan (SARIF Output)
+      if: steps.find-terraform.outputs.terraform_dirs != ''
+      run: |
+        echo "🔍 Running Terraform Security Scan for SARIF..."
+        # Scan all Terraform directories and output SARIF
+        for dir in ${{ steps.find-terraform.outputs.terraform_dirs }}; do
+          echo "📁 Scanning directory for SARIF: $dir"
+          tflint -f sarif -o "security-results-$(basename $dir).sarif" "$dir" || true
+        done
+        
+        # Combine all SARIF files if multiple exist
+        if ls security-results-*.sarif 1> /dev/null 2>&1; then
+          echo "📊 SARIF files generated successfully"
+          ls -la security-results-*.sarif
+          
+          # If only one SARIF file, rename it
+          if [ $(ls security-results-*.sarif | wc -l) -eq 1 ]; then
+            mv security-results-*.sarif security-results.sarif
+          else
+            # Combine multiple SARIF files (simplified approach)
+            cp security-results-*.sarif security-results.sarif 2>/dev/null || echo "Multiple SARIF files found, using first one"
+          fi
+        else
+          echo "⚠️ No SARIF files generated"
+        fi
+
+    - name: Upload SARIF results to GitHub Security tab
+      if: always() && hashFiles('security-results.sarif') != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: security-results.sarif
+        category: terraform-security
+
+    - name: Generate Security Report Summary
+      if: steps.find-terraform.outputs.terraform_dirs != ''
+      run: |
+        echo "🔍 Generating security report summary..."
+        
+        # Run scan with JSON output for processing
+        for dir in ${{ steps.find-terraform.outputs.terraform_dirs }}; do
+          tflint -f json -o "security-results-$(basename $dir).json" "$dir" || true
+        done
+        
+        # Create a summary report
+        cat > security-summary.md << 'EOF'
+        ## 🔒 Terraform Security Scan Results
+        
+        ### 📊 Summary
+        EOF
+        
+        # Process JSON results if available
+        if ls security-results-*.json 1> /dev/null 2>&1; then
+          echo "| Directory | Critical | High | Medium | Low | Total |" >> security-summary.md
+          echo "|-----------|----------|------|--------|-----|-------|" >> security-summary.md
+          
+          for json_file in security-results-*.json; do
+            if [ -f "$json_file" ] && [ -s "$json_file" ]; then
+              dir_name=$(basename "$json_file" .json | sed 's/security-results-//')
+              # Simple JSON parsing (requires jq for complex parsing)
+              total=$(grep -o '"rule"' "$json_file" | wc -l || echo "0")
+              critical=$(grep -c '"severity":"critical"' "$json_file" || echo "0")
+              high=$(grep -c '"severity":"high"' "$json_file" || echo "0")
+              medium=$(grep -c '"severity":"medium"' "$json_file" || echo "0")
+              low=$(grep -c '"severity":"low"' "$json_file" || echo "0")
+              
+              echo "| $dir_name | $critical | $high | $medium | $low | $total |" >> security-summary.md
+            fi
+          done
+        else
+          echo "No JSON results found for summary generation" >> security-summary.md
+        fi
+        
+        echo "" >> security-summary.md
+        echo "### 🔧 Next Steps" >> security-summary.md
+        echo "- Review critical and high severity issues immediately" >> security-summary.md
+        echo "- Update Terraform configurations to address security findings" >> security-summary.md
+        echo "- Consider using Azure Key Vault or AWS Secrets Manager for sensitive data" >> security-summary.md
+        echo "- Enable encryption for all storage resources" >> security-summary.md
+        
+        cat security-summary.md
+
+    - name: Comment PR with Security Results
+      if: github.event_name == 'pull_request' && steps.find-terraform.outputs.terraform_dirs != ''
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read the security summary
+          let summary = '## 🔒 Terraform Security Scan Results\n\n';
+          
+          try {
+            if (fs.existsSync('security-summary.md')) {
+              summary = fs.readFileSync('security-summary.md', 'utf8');
+            } else {
+              summary += '✅ Security scan completed. Check the Actions tab for detailed results.\n\n';
+              summary += '📋 **Scan Coverage:**\n';
+              summary += `- Directories scanned: ${{ steps.find-terraform.outputs.terraform_dirs }}\n`;
+              summary += '- Multi-cloud rules: Azure, AWS, and general cloud security\n';
+              summary += '- Rule categories: Secrets, encryption, access control, best practices\n';
+            }
+          } catch (error) {
+            console.log('Error reading security summary:', error);
+            summary += '⚠️ Unable to generate detailed summary. Please check the Actions tab for results.\n';
+          }
+          
+          // Add footer
+          summary += '\n---\n';
+          summary += '🤖 *Automated security scan powered by [Go Terraform Linter](https://github.com/heyimusa/go-terraform-linter)*\n';
+          summary += `📊 *Scan ID: ${context.runId}*`;
+          
+          // Post comment
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
+
+    - name: Archive Security Reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: terraform-security-reports
+        path: |
+          security-results*.sarif
+          security-results*.json
+          security-summary.md
+        retention-days: 30
+
+    - name: Fail on Critical Issues
+      if: steps.find-terraform.outputs.terraform_dirs != ''
+      run: |
+        echo "🔍 Checking for critical security issues..."
+        
+        # Check if any critical issues were found
+        CRITICAL_FOUND=false
+        
+        for json_file in security-results-*.json; do
+          if [ -f "$json_file" ] && [ -s "$json_file" ]; then
+            if grep -q '"severity":"critical"' "$json_file"; then
+              CRITICAL_FOUND=true
+              echo "❌ Critical security issues found in $json_file"
+            fi
+          fi
+        done
+        
+        if [ "$CRITICAL_FOUND" = true ]; then
+          echo "💥 Build failed due to critical security issues!"
+          echo "Please review and fix the critical security findings before merging."
+          exit 1
+        else
+          echo "✅ No critical security issues found."
+        fi
+
+  # Optional: Notify security team on critical findings
+  notify-security-team:
+    name: Notify Security Team
+    needs: terraform-security-scan
+    runs-on: ubuntu-latest
+    if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+    - name: Send Slack notification
+      if: env.SLACK_WEBHOOK_URL != ''
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: |
+          🚨 Critical security issues found in Terraform configuration!
+          
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          
+          Please review the security scan results immediately.
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 
