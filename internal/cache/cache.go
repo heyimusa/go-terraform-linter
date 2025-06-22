@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -32,6 +33,7 @@ type Cache struct {
 	cacheDir string
 	entries  map[string]*CacheEntry
 	enabled  bool
+	mutex    sync.RWMutex
 }
 
 // NewCache creates a new cache instance
@@ -40,11 +42,16 @@ func NewCache(cacheDir string, enabled bool) *Cache {
 		cacheDir = ".tflint-cache"
 	}
 	
-	return &Cache{
+	cache := &Cache{
 		cacheDir: cacheDir,
 		entries:  make(map[string]*CacheEntry),
 		enabled:  enabled,
 	}
+	
+	// Load existing cache entries
+	cache.loadCache()
+	
+	return cache
 }
 
 // IsFileChanged checks if a file has changed since last scan
@@ -67,7 +74,9 @@ func (c *Cache) IsFileChanged(filePath string) (bool, error) {
 	
 	// Check if we have a cached entry
 	cacheKey := c.getCacheKey(filePath)
+	c.mutex.RLock()
 	cachedEntry, exists := c.entries[cacheKey]
+	c.mutex.RUnlock()
 	
 	if !exists {
 		return true, nil // File not in cache, consider changed
@@ -100,6 +109,7 @@ func (c *Cache) StoreFileResult(filePath string, issues []CachedIssue) error {
 	}
 	
 	cacheKey := c.getCacheKey(filePath)
+	c.mutex.Lock()
 	c.entries[cacheKey] = &CacheEntry{
 		FileHash:     fileHash,
 		LastModified: fileInfo.ModTime(),
@@ -107,6 +117,7 @@ func (c *Cache) StoreFileResult(filePath string, issues []CachedIssue) error {
 		ScanTime:     time.Now(),
 		Issues:       issues,
 	}
+	c.mutex.Unlock()
 	
 	return c.saveCache()
 }
@@ -118,7 +129,9 @@ func (c *Cache) GetCachedIssues(filePath string) ([]CachedIssue, bool) {
 	}
 	
 	cacheKey := c.getCacheKey(filePath)
+	c.mutex.RLock()
 	entry, exists := c.entries[cacheKey]
+	c.mutex.RUnlock()
 	if !exists {
 		return nil, false
 	}
@@ -128,12 +141,15 @@ func (c *Cache) GetCachedIssues(filePath string) ([]CachedIssue, bool) {
 
 // ClearCache clears all cached entries
 func (c *Cache) ClearCache() error {
+	c.mutex.Lock()
 	c.entries = make(map[string]*CacheEntry)
+	c.mutex.Unlock()
 	return c.saveCache()
 }
 
 // GetCacheStats returns cache statistics
 func (c *Cache) GetCacheStats() map[string]interface{} {
+	c.mutex.RLock()
 	totalEntries := len(c.entries)
 	var totalIssues int
 	var oldestScan time.Time
@@ -148,6 +164,7 @@ func (c *Cache) GetCacheStats() map[string]interface{} {
 			newestScan = entry.ScanTime
 		}
 	}
+	c.mutex.RUnlock()
 	
 	return map[string]interface{}{
 		"total_entries": totalEntries,
@@ -191,6 +208,7 @@ func (c *Cache) saveCache() error {
 	}
 	
 	// Clean up any nil entries or invalid data before marshaling
+	c.mutex.RLock()
 	cleanEntries := make(map[string]*CacheEntry)
 	for key, entry := range c.entries {
 		if entry != nil && key != "" {
@@ -213,6 +231,7 @@ func (c *Cache) saveCache() error {
 			cleanEntries[key] = cleanEntry
 		}
 	}
+	c.mutex.RUnlock()
 	
 	cacheFile := filepath.Join(c.cacheDir, "cache.json")
 	data, err := json.MarshalIndent(cleanEntries, "", "  ")
@@ -238,7 +257,10 @@ func (c *Cache) loadCache() error {
 		return err
 	}
 	
-	return json.Unmarshal(data, &c.entries)
+	c.mutex.Lock()
+	err = json.Unmarshal(data, &c.entries)
+	c.mutex.Unlock()
+	return err
 }
 
 // CleanupExpiredEntries removes cache entries older than maxAge
@@ -250,17 +272,20 @@ func (c *Cache) CleanupExpiredEntries(maxAge time.Duration) error {
 	cutoff := time.Now().Add(-maxAge)
 	var expiredKeys []string
 	
+	c.mutex.RLock()
 	for key, entry := range c.entries {
 		if entry.ScanTime.Before(cutoff) {
 			expiredKeys = append(expiredKeys, key)
 		}
 	}
-	
-	for _, key := range expiredKeys {
-		delete(c.entries, key)
-	}
+	c.mutex.RUnlock()
 	
 	if len(expiredKeys) > 0 {
+		c.mutex.Lock()
+		for _, key := range expiredKeys {
+			delete(c.entries, key)
+		}
+		c.mutex.Unlock()
 		return c.saveCache()
 	}
 	
