@@ -163,6 +163,9 @@ func (r *Report) updateStats(severity string) {
 }
 
 func (r *Report) HasIssues() bool {
+	if r == nil {
+		return false
+	}
 	return len(r.Issues) > 0
 }
 
@@ -322,6 +325,26 @@ func (r *Report) addFixSuggestion(issue *Issue) {
 		issue.FixSuggestion = "Use TLSv1.2 or higher."
 	case "MISSING_BACKUP":
 		issue.FixSuggestion = "Set 'backup_retention_period' to a value greater than 0."
+	// AWS-specific rules
+	case "aws_s3_bucket_public_acl":
+		issue.FixSuggestion = "Remove public ACL permissions and use bucket policies instead."
+	case "aws_sg_open_ssh":
+		issue.FixSuggestion = "Restrict SSH access to specific IP ranges instead of 0.0.0.0/0."
+	case "aws_instance_unencrypted":
+		issue.FixSuggestion = "Enable EBS encryption by setting 'encrypted = true'."
+	case "aws_rds_unencrypted":
+		issue.FixSuggestion = "Enable RDS encryption by setting 'storage_encrypted = true'."
+	default:
+		// Generate a generic fix suggestion based on rule patterns
+		if strings.Contains(strings.ToLower(issue.Rule), "public") || strings.Contains(strings.ToLower(issue.Rule), "open") {
+			issue.FixSuggestion = "Restrict access to trusted sources only."
+		} else if strings.Contains(strings.ToLower(issue.Rule), "encrypt") || strings.Contains(strings.ToLower(issue.Rule), "unencrypted") {
+			issue.FixSuggestion = "Enable encryption for this resource."
+		} else if strings.Contains(strings.ToLower(issue.Rule), "tag") {
+			issue.FixSuggestion = "Add appropriate tags to this resource."
+		} else {
+			issue.FixSuggestion = "Review and fix this security issue according to best practices."
+		}
 	}
 }
 
@@ -372,6 +395,8 @@ func (r *Report) SaveToFileWithFormat(filename, format string) error {
 		}
 		html += "</table></body></html>"
 		out = []byte(html)
+	case "text":
+		out = []byte(r.formatText())
 	default:
 		out, err = json.MarshalIndent(r, "", "  ")
 	}
@@ -537,6 +562,16 @@ func (r *Report) Format(format string) (string, error) {
 			return "", fmt.Errorf("failed to generate SARIF: %w", err)
 		}
 		return string(data), nil
+	case "html":
+		html := "<html><head><title>Terraform Linter Report</title></head><body>"
+		html += "<h1>Terraform Linter Report</h1>"
+		html += "<table border='1'><tr><th>File</th><th>Rule</th><th>Message</th><th>Severity</th><th>Line</th><th>Fix Suggestion</th></tr>"
+		for _, issue := range r.Issues {
+			html += fmt.Sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td></tr>",
+				issue.File, issue.Rule, issue.Message, issue.Severity, issue.Line, issue.FixSuggestion)
+		}
+		html += "</table></body></html>"
+		return html, nil
 	case "text":
 		return r.formatText(), nil
 	default:

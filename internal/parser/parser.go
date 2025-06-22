@@ -154,6 +154,11 @@ func extractRawValue(val cty.Value) string {
 		return "null"
 	}
 	
+	// Handle unknown values
+	if !val.IsKnown() {
+		return "unknown"
+	}
+	
 	switch val.Type() {
 	case cty.String:
 		return val.AsString()

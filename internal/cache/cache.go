@@ -190,8 +190,32 @@ func (c *Cache) saveCache() error {
 		return err
 	}
 	
+	// Clean up any nil entries or invalid data before marshaling
+	cleanEntries := make(map[string]*CacheEntry)
+	for key, entry := range c.entries {
+		if entry != nil && key != "" {
+			// Ensure all fields are valid
+			cleanEntry := &CacheEntry{
+				FileHash:     entry.FileHash,
+				LastModified: entry.LastModified,
+				FileSize:     entry.FileSize,
+				ScanTime:     entry.ScanTime,
+				Issues:       make([]CachedIssue, 0, len(entry.Issues)),
+			}
+			
+			// Clean up issues array
+			for _, issue := range entry.Issues {
+				if issue.Rule != "" && issue.Message != "" {
+					cleanEntry.Issues = append(cleanEntry.Issues, issue)
+				}
+			}
+			
+			cleanEntries[key] = cleanEntry
+		}
+	}
+	
 	cacheFile := filepath.Join(c.cacheDir, "cache.json")
-	data, err := json.MarshalIndent(c.entries, "", "  ")
+	data, err := json.MarshalIndent(cleanEntries, "", "  ")
 	if err != nil {
 		return err
 	}
