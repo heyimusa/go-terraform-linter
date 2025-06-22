@@ -11,6 +11,12 @@ import (
 type PublicAccessRule struct{}
 
 func (r *PublicAccessRule) GetName() string { return "PUBLIC_ACCESS" }
+func (r *PublicAccessRule) GetDescription() string { return "Detects public access configurations" }
+func (r *PublicAccessRule) GetSeverity() string { return "high" }
+func (r *PublicAccessRule) GetCategory() string { return "network" }
+func (r *PublicAccessRule) GetProvider() string { return "multi" }
+func (r *PublicAccessRule) GetTags() []string { return []string{"security", "public-access"} }
+func (r *PublicAccessRule) GetVersion() string { return "1.0.0" }
 
 func (r *PublicAccessRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -61,6 +67,12 @@ func (r *PublicAccessRule) Check(config *parser.Config) []types.Issue {
 type OpenPortsRule struct{}
 
 func (r *OpenPortsRule) GetName() string { return "OPEN_PORTS" }
+func (r *OpenPortsRule) GetDescription() string { return "Detects sensitive ports open to the world" }
+func (r *OpenPortsRule) GetSeverity() string { return "high" }
+func (r *OpenPortsRule) GetCategory() string { return "network" }
+func (r *OpenPortsRule) GetProvider() string { return "multi" }
+func (r *OpenPortsRule) GetTags() []string { return []string{"security", "network", "ports"} }
+func (r *OpenPortsRule) GetVersion() string { return "1.0.0" }
 
 func (r *OpenPortsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue

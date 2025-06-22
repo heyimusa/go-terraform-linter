@@ -1,0 +1,29 @@
+repositories:
+  - name: official
+    url: https://rules.go-terraform-linter.com
+    type: http
+    enabled: true
+  
+  - name: community
+    url: https://github.com/go-terraform-linter/community-rules
+    type: git
+    branch: main
+    path: rules
+    enabled: true
+  
+  - name: enterprise
+    url: https://enterprise-rules.company.com
+    type: http
+    enabled: false
+    credentials:
+      username: "${ENTERPRISE_USERNAME}"
+      password: "${ENTERPRISE_PASSWORD}"
+  
+  - name: local
+    path: /usr/local/share/go-terraform-linter/rules
+    type: local
+    enabled: true
+
+cache_dir: ~/.go-terraform-linter/cache
+timeout: 30s
+auto_update: true 

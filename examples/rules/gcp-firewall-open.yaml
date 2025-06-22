@@ -1,0 +1,36 @@
+id: gcp-firewall-open
+name: GCP_FIREWALL_OPEN
+description: Detects GCP firewall rules that allow access from anywhere
+severity: high
+category: network
+provider: gcp
+tags:
+  - security
+  - gcp
+  - firewall
+  - network
+version: 1.0.0
+enabled: true
+risk_score: 8
+compliance:
+  - SOC2
+  - CIS
+cwe:
+  - CWE-284
+docs_url: https://cloud.google.com/firewall/docs/firewalls
+conditions:
+  - type: resource
+    resource_type: google_compute_firewall
+    operator: exists
+  - type: attribute
+    resource_type: google_compute_firewall
+    attribute: source_ranges
+    operator: contains
+    value: "0.0.0.0/0"
+    message: Firewall rule allows access from anywhere (0.0.0.0/0)
+metadata:
+  author: Go Terraform Linter
+  created: "2024-01-01"
+  updated: "2024-01-01"
+  impact: "High - Allows unrestricted access to resources"
+  remediation: "Restrict source ranges to specific IP addresses or ranges" 

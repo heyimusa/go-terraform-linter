@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/heyimusa/go-terraform-linter/internal/types"
 )
 
@@ -51,7 +52,7 @@ func (p *Parser) ParseFile(filename string) (*Config, error) {
 	var file *hcl.File
 	var diags hcl.Diagnostics
 
-	if strings.HasSuffix(filename, ".tf") {
+	if strings.HasSuffix(filename, ".tf") || strings.HasSuffix(filename, ".tfvars") {
 		file, diags = p.parser.ParseHCL(src, filename)
 	} else if strings.HasSuffix(filename, ".tf.json") {
 		file, diags = p.parser.ParseJSON(src, filename)
@@ -67,15 +68,7 @@ func (p *Parser) ParseFile(filename string) (*Config, error) {
 	config := &Config{}
 	config.Blocks = p.extractBlocks(file.Body)
 
-	// Debug output
-	fmt.Printf("DEBUG: Parsed %d blocks\n", len(config.Blocks))
-	for i, block := range config.Blocks {
-		fmt.Printf("DEBUG: Block %d: Type=%s, Labels=%v, Attributes=%d\n", 
-			i, block.Type, block.Labels, len(block.Attributes))
-		for name, attr := range block.Attributes {
-			fmt.Printf("DEBUG:   Attribute: %s = %v\n", name, attr.Value)
-		}
-	}
+	// Remove debug output for production
 
 	return config, nil
 }
@@ -107,7 +100,7 @@ func (p *Parser) extractBlocks(body hcl.Body) []types.Block {
 		attrs, _ := block.Body.JustAttributes()
 		for name, attr := range attrs {
 			val, _ := attr.Expr.Value(nil)
-			rawValue := fmt.Sprintf("%v", val) // Capture the raw string representation
+			rawValue := extractRawValue(val)
 			tfBlock.Attributes[name] = types.Attribute{
 				Name:     name,
 				Value:    val,
@@ -138,7 +131,7 @@ func (p *Parser) extractBlocksFromSyntax(body *hclsyntax.Body) []types.Block {
 		// Extract attributes
 		for name, attr := range block.Body.Attributes {
 			val, _ := attr.Expr.Value(nil)
-			rawValue := fmt.Sprintf("%v", val) // Capture the raw string representation
+			rawValue := extractRawValue(val)
 			tfBlock.Attributes[name] = types.Attribute{
 				Name:     name,
 				Value:    val,
@@ -154,3 +147,31 @@ func (p *Parser) extractBlocksFromSyntax(body *hclsyntax.Body) []types.Block {
 
 	return blocks
 } 
+
+// extractRawValue extracts a clean string representation from cty.Value
+func extractRawValue(val cty.Value) string {
+	if val.IsNull() {
+		return "null"
+	}
+	
+	switch val.Type() {
+	case cty.String:
+		return val.AsString()
+	case cty.Number:
+		num := val.AsBigFloat()
+		if num.IsInt() {
+			i, _ := num.Int64()
+			return fmt.Sprintf("%d", i)
+		}
+		f, _ := num.Float64()
+		return fmt.Sprintf("%g", f)
+	case cty.Bool:
+		if val.True() {
+			return "true"
+		}
+		return "false"
+	default:
+		// For complex types (maps, lists, etc.), return a formatted representation
+		return fmt.Sprintf("%#v", val)
+	}
+}
