@@ -9,6 +9,12 @@ import (
 type CostOptimizationRule struct{}
 
 func (r *CostOptimizationRule) GetName() string { return "COST_OPTIMIZATION" }
+func (r *CostOptimizationRule) GetDescription() string { return "Detects large/expensive instance types" }
+func (r *CostOptimizationRule) GetSeverity() string { return "medium" }
+func (r *CostOptimizationRule) GetCategory() string { return "cost" }
+func (r *CostOptimizationRule) GetProvider() string { return "aws" }
+func (r *CostOptimizationRule) GetTags() []string { return []string{"cost", "optimization", "instances"} }
+func (r *CostOptimizationRule) GetVersion() string { return "1.0.0" }
 
 func (r *CostOptimizationRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue

@@ -11,6 +11,12 @@ import (
 type UnencryptedStorageRule struct{}
 
 func (r *UnencryptedStorageRule) GetName() string { return "UNENCRYPTED_STORAGE" }
+func (r *UnencryptedStorageRule) GetDescription() string { return "Detects unencrypted storage resources" }
+func (r *UnencryptedStorageRule) GetSeverity() string { return "high" }
+func (r *UnencryptedStorageRule) GetCategory() string { return "storage" }
+func (r *UnencryptedStorageRule) GetProvider() string { return "aws" }
+func (r *UnencryptedStorageRule) GetTags() []string { return []string{"security", "storage", "encryption"} }
+func (r *UnencryptedStorageRule) GetVersion() string { return "1.0.0" }
 
 func (r *UnencryptedStorageRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -51,6 +57,12 @@ func (r *UnencryptedStorageRule) Check(config *parser.Config) []types.Issue {
 type EncryptionComplianceRule struct{}
 
 func (r *EncryptionComplianceRule) GetName() string { return "ENCRYPTION_COMPLIANCE" }
+func (r *EncryptionComplianceRule) GetDescription() string { return "Detects missing encryption for compliance" }
+func (r *EncryptionComplianceRule) GetSeverity() string { return "critical" }
+func (r *EncryptionComplianceRule) GetCategory() string { return "compliance" }
+func (r *EncryptionComplianceRule) GetProvider() string { return "aws" }
+func (r *EncryptionComplianceRule) GetTags() []string { return []string{"security", "compliance", "encryption"} }
+func (r *EncryptionComplianceRule) GetVersion() string { return "1.0.0" }
 
 func (r *EncryptionComplianceRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue

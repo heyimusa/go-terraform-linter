@@ -174,7 +174,7 @@ func (r *ConfigurableRule) Check(config *parser.Config) []types.Issue {
 	
 	for _, block := range config.Blocks {
 		for i, condition := range r.definition.Conditions {
-			if issue := r.checkCondition(block, condition, i); issue != nil {
+			if issue := r.checkCondition(&block, condition, i); issue != nil {
 				issues = append(issues, *issue)
 			}
 		}
@@ -230,7 +230,7 @@ func (r *ConfigurableRule) checkAttributeCondition(block *types.Block, condition
 		return nil
 	}
 	
-	return r.evaluateAttributeCondition(attr, condition, conditionIndex)
+	return r.evaluateAttributeCondition(&attr, condition, conditionIndex)
 }
 
 func (r *ConfigurableRule) checkBlockCondition(block *types.Block, condition RuleCondition, conditionIndex int) *types.Issue {
@@ -240,7 +240,7 @@ func (r *ConfigurableRule) checkBlockCondition(block *types.Block, condition Rul
 			continue
 		}
 		
-		if issue := r.evaluateCondition(nestedBlock, condition, conditionIndex, nestedBlock.Type); issue != nil {
+		if issue := r.evaluateCondition(&nestedBlock, condition, conditionIndex, nestedBlock.Type); issue != nil {
 			return issue
 		}
 	}

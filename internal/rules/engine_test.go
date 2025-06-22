@@ -26,6 +26,30 @@ func (m *MockRule) GetName() string {
 	return m.RuleName
 }
 
+func (m *MockRule) GetDescription() string {
+	return "Mock rule for testing"
+}
+
+func (m *MockRule) GetSeverity() string {
+	return "medium"
+}
+
+func (m *MockRule) GetCategory() string {
+	return "test"
+}
+
+func (m *MockRule) GetProvider() string {
+	return "test"
+}
+
+func (m *MockRule) GetTags() []string {
+	return []string{"test", "mock"}
+}
+
+func (m *MockRule) GetVersion() string {
+	return "1.0.0"
+}
+
 func TestNewRuleEngine(t *testing.T) {
 	engine := NewRuleEngine()
 	

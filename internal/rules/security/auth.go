@@ -11,6 +11,12 @@ import (
 type WeakPasswordRule struct{}
 
 func (r *WeakPasswordRule) GetName() string { return "WEAK_PASSWORD" }
+func (r *WeakPasswordRule) GetDescription() string { return "Detects weak password configurations" }
+func (r *WeakPasswordRule) GetSeverity() string { return "medium" }
+func (r *WeakPasswordRule) GetCategory() string { return "authentication" }
+func (r *WeakPasswordRule) GetProvider() string { return "aws" }
+func (r *WeakPasswordRule) GetTags() []string { return []string{"security", "authentication", "password"} }
+func (r *WeakPasswordRule) GetVersion() string { return "1.0.0" }
 
 func (r *WeakPasswordRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -42,6 +48,12 @@ func (r *WeakPasswordRule) Check(config *parser.Config) []types.Issue {
 type ExposedSecretsRule struct{}
 
 func (r *ExposedSecretsRule) GetName() string { return "EXPOSED_SECRETS" }
+func (r *ExposedSecretsRule) GetDescription() string { return "Detects hardcoded secrets" }
+func (r *ExposedSecretsRule) GetSeverity() string { return "critical" }
+func (r *ExposedSecretsRule) GetCategory() string { return "security" }
+func (r *ExposedSecretsRule) GetProvider() string { return "multi" }
+func (r *ExposedSecretsRule) GetTags() []string { return []string{"security", "secrets", "hardcoded"} }
+func (r *ExposedSecretsRule) GetVersion() string { return "1.0.0" }
 
 func (r *ExposedSecretsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -73,6 +85,12 @@ func (r *ExposedSecretsRule) Check(config *parser.Config) []types.Issue {
 type IamLeastPrivilegeRule struct{}
 
 func (r *IamLeastPrivilegeRule) GetName() string { return "IAM_LEAST_PRIVILEGE" }
+func (r *IamLeastPrivilegeRule) GetDescription() string { return "Detects IAM policies with excessive permissions" }
+func (r *IamLeastPrivilegeRule) GetSeverity() string { return "high" }
+func (r *IamLeastPrivilegeRule) GetCategory() string { return "iam" }
+func (r *IamLeastPrivilegeRule) GetProvider() string { return "aws" }
+func (r *IamLeastPrivilegeRule) GetTags() []string { return []string{"security", "iam", "permissions"} }
+func (r *IamLeastPrivilegeRule) GetVersion() string { return "1.0.0" }
 
 func (r *IamLeastPrivilegeRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -106,6 +124,12 @@ func (r *IamLeastPrivilegeRule) Check(config *parser.Config) []types.Issue {
 type ExcessivePermissionsRule struct{}
 
 func (r *ExcessivePermissionsRule) GetName() string { return "EXCESSIVE_PERMISSIONS" }
+func (r *ExcessivePermissionsRule) GetDescription() string { return "Detects IAM roles with excessive permissions" }
+func (r *ExcessivePermissionsRule) GetSeverity() string { return "high" }
+func (r *ExcessivePermissionsRule) GetCategory() string { return "iam" }
+func (r *ExcessivePermissionsRule) GetProvider() string { return "aws" }
+func (r *ExcessivePermissionsRule) GetTags() []string { return []string{"security", "iam", "excessive-permissions"} }
+func (r *ExcessivePermissionsRule) GetVersion() string { return "1.0.0" }
 
 func (r *ExcessivePermissionsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue

@@ -105,8 +105,8 @@ provider "azurerm" {
 				if issue.Rule != rule.GetName() {
 					t.Errorf("Expected rule %s, got %s", rule.GetName(), issue.Rule)
 				}
-				if issue.Severity != rule.Severity() {
-					t.Errorf("Expected severity %s, got %s", rule.Severity(), issue.Severity)
+				if issue.Severity != rule.GetSeverity() {
+					t.Errorf("Expected severity %s, got %s", rule.GetSeverity(), issue.Severity)
 				}
 			}
 		})

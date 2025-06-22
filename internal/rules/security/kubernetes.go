@@ -33,12 +33,12 @@ func (r *KubernetesPrivilegedContainerRule) Check(config *parser.Config) []types
 			// Check Kubernetes deployments, daemonsets, statefulsets
 			if resourceType == "kubernetes_deployment" || resourceType == "kubernetes_daemonset" || 
 			   resourceType == "kubernetes_stateful_set" {
-				issues = append(issues, r.checkPodSpec(block)...)
+				issues = append(issues, r.checkPodSpec(&block)...)
 			}
 
 			// Check Kubernetes pods directly
 			if resourceType == "kubernetes_pod" {
-				issues = append(issues, r.checkPodSpec(block)...)
+				issues = append(issues, r.checkPodSpec(&block)...)
 			}
 		}
 	}
@@ -49,24 +49,24 @@ func (r *KubernetesPrivilegedContainerRule) Check(config *parser.Config) []types
 func (r *KubernetesPrivilegedContainerRule) checkPodSpec(block *types.Block) []types.Issue {
 	var issues []types.Issue
 
-	// Navigate through the nested structure to find containers
-	for _, specBlock := range block.Blocks {
-		if specBlock.Type == "spec" {
-			for _, templateBlock := range specBlock.Blocks {
-				if templateBlock.Type == "template" {
-					for _, podSpecBlock := range templateBlock.Blocks {
-						if podSpecBlock.Type == "spec" {
-							issues = append(issues, r.checkContainers(podSpecBlock)...)
+			// Navigate through the nested structure to find containers
+		for _, specBlock := range block.Blocks {
+			if specBlock.Type == "spec" {
+				for _, templateBlock := range specBlock.Blocks {
+					if templateBlock.Type == "template" {
+						for _, podSpecBlock := range templateBlock.Blocks {
+							if podSpecBlock.Type == "spec" {
+								issues = append(issues, r.checkContainers(&podSpecBlock)...)
+							}
 						}
 					}
-				}
-				// Direct spec for pods
-				if templateBlock.Type == "container" {
-					issues = append(issues, r.checkContainer(templateBlock)...)
+					// Direct spec for pods
+					if templateBlock.Type == "container" {
+						issues = append(issues, r.checkContainer(&templateBlock)...)
+					}
 				}
 			}
 		}
-	}
 
 	return issues
 }
@@ -76,7 +76,7 @@ func (r *KubernetesPrivilegedContainerRule) checkContainers(specBlock *types.Blo
 
 	for _, containerBlock := range specBlock.Blocks {
 		if containerBlock.Type == "container" {
-			issues = append(issues, r.checkContainer(containerBlock)...)
+			issues = append(issues, r.checkContainer(&containerBlock)...)
 		}
 	}
 
@@ -127,7 +127,7 @@ func (r *KubernetesRootUserRule) Check(config *parser.Config) []types.Issue {
 
 			if resourceType == "kubernetes_deployment" || resourceType == "kubernetes_daemonset" || 
 			   resourceType == "kubernetes_stateful_set" || resourceType == "kubernetes_pod" {
-				issues = append(issues, r.checkForRootUser(block)...)
+				issues = append(issues, r.checkForRootUser(&block)...)
 			}
 		}
 	}
@@ -145,12 +145,12 @@ func (r *KubernetesRootUserRule) checkForRootUser(block *types.Block) []types.Is
 				if templateBlock.Type == "template" {
 					for _, podSpecBlock := range templateBlock.Blocks {
 						if podSpecBlock.Type == "spec" {
-							issues = append(issues, r.checkPodSpecForRootUser(podSpecBlock)...)
+							issues = append(issues, r.checkPodSpecForRootUser(&podSpecBlock)...)
 						}
 					}
 				}
 				if templateBlock.Type == "container" {
-					issues = append(issues, r.checkContainerForRootUser(templateBlock)...)
+					issues = append(issues, r.checkContainerForRootUser(&templateBlock)...)
 				}
 			}
 		}
@@ -182,7 +182,7 @@ func (r *KubernetesRootUserRule) checkPodSpecForRootUser(specBlock *types.Block)
 	// Check container-level security context
 	for _, containerBlock := range specBlock.Blocks {
 		if containerBlock.Type == "container" {
-			issues = append(issues, r.checkContainerForRootUser(containerBlock)...)
+			issues = append(issues, r.checkContainerForRootUser(&containerBlock)...)
 		}
 	}
 
@@ -238,7 +238,7 @@ func (r *KubernetesCapabilitiesRule) Check(config *parser.Config) []types.Issue 
 
 			if resourceType == "kubernetes_deployment" || resourceType == "kubernetes_daemonset" || 
 			   resourceType == "kubernetes_stateful_set" || resourceType == "kubernetes_pod" {
-				issues = append(issues, r.checkCapabilities(block, dangerousCapabilities)...)
+				issues = append(issues, r.checkCapabilities(&block, dangerousCapabilities)...)
 			}
 		}
 	}
@@ -258,7 +258,7 @@ func (r *KubernetesCapabilitiesRule) checkCapabilities(block *types.Block, dange
 						if podSpecBlock.Type == "spec" {
 							for _, containerBlock := range podSpecBlock.Blocks {
 								if containerBlock.Type == "container" {
-									issues = append(issues, r.checkContainerCapabilities(containerBlock, dangerousCapabilities)...)
+									issues = append(issues, r.checkContainerCapabilities(&containerBlock, dangerousCapabilities)...)
 								}
 							}
 						}
@@ -322,7 +322,7 @@ func (r *KubernetesHostNetworkRule) Check(config *parser.Config) []types.Issue {
 
 			if resourceType == "kubernetes_deployment" || resourceType == "kubernetes_daemonset" || 
 			   resourceType == "kubernetes_stateful_set" || resourceType == "kubernetes_pod" {
-				issues = append(issues, r.checkHostNetwork(block)...)
+				issues = append(issues, r.checkHostNetwork(&block)...)
 			}
 		}
 	}
@@ -396,7 +396,7 @@ func (r *KubernetesSecretsInEnvRule) Check(config *parser.Config) []types.Issue 
 
 			if resourceType == "kubernetes_deployment" || resourceType == "kubernetes_daemonset" || 
 			   resourceType == "kubernetes_stateful_set" || resourceType == "kubernetes_pod" {
-				issues = append(issues, r.checkEnvironmentVariables(block, secretKeywords)...)
+				issues = append(issues, r.checkEnvironmentVariables(&block, secretKeywords)...)
 			}
 		}
 	}
@@ -415,7 +415,7 @@ func (r *KubernetesSecretsInEnvRule) checkEnvironmentVariables(block *types.Bloc
 						if podSpecBlock.Type == "spec" {
 							for _, containerBlock := range podSpecBlock.Blocks {
 								if containerBlock.Type == "container" {
-									issues = append(issues, r.checkContainerEnv(containerBlock, secretKeywords)...)
+									issues = append(issues, r.checkContainerEnv(&containerBlock, secretKeywords)...)
 								}
 							}
 						}
@@ -478,7 +478,7 @@ func (r *KubernetesResourceLimitsRule) Check(config *parser.Config) []types.Issu
 
 			if resourceType == "kubernetes_deployment" || resourceType == "kubernetes_daemonset" || 
 			   resourceType == "kubernetes_stateful_set" || resourceType == "kubernetes_pod" {
-				issues = append(issues, r.checkResourceLimits(block)...)
+				issues = append(issues, r.checkResourceLimits(&block)...)
 			}
 		}
 	}
@@ -497,7 +497,7 @@ func (r *KubernetesResourceLimitsRule) checkResourceLimits(block *types.Block) [
 						if podSpecBlock.Type == "spec" {
 							for _, containerBlock := range podSpecBlock.Blocks {
 								if containerBlock.Type == "container" {
-									issues = append(issues, r.checkContainerResources(containerBlock)...)
+									issues = append(issues, r.checkContainerResources(&containerBlock)...)
 								}
 							}
 						}

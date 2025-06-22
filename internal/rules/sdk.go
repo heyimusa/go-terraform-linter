@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/heyimusa/go-terraform-linter/internal/parser"
 	"github.com/heyimusa/go-terraform-linter/internal/types"
 )
@@ -180,9 +181,9 @@ func (rb *RuleBuilder) Build() (Rule, error) {
 
 	// Create the rule
 	rule := &SDKRule{
-		definition: rb.definition,
-		validators: rb.validators,
-		processors: rb.processors,
+		ConfigurableRule: NewDynamicRule(),
+		validators:       rb.validators,
+		processors:       rb.processors,
 	}
 
 	// Load the rule
@@ -236,25 +237,25 @@ func (r *SDKRule) Check(config *parser.Config) []types.Issue {
 
 	var issues []types.Issue
 
-	for _, block := range config.Blocks {
+			for _, block := range config.Blocks {
 		for i, condition := range r.definition.Conditions {
 			// Use custom validators if provided
 			if len(r.validators) > i && r.validators[i] != nil {
-				if !r.validators[i](block, condition) {
+				if !r.validators[i](&block, condition) {
 					continue
 				}
 			}
 
 			// Use custom processors if provided
 			if len(r.processors) > i && r.processors[i] != nil {
-				if issue := r.processors[i](block, condition); issue != nil {
+				if issue := r.processors[i](&block, condition); issue != nil {
 					issues = append(issues, *issue)
 				}
 				continue
 			}
 
 			// Fall back to default processing
-			if issue := r.checkCondition(block, condition, i); issue != nil {
+			if issue := r.checkCondition(&block, condition, i); issue != nil {
 				issues = append(issues, *issue)
 			}
 		}
@@ -339,6 +340,18 @@ func (rh *RuleHelpers) CreateIssue(ruleName, message, description, severity stri
 // ExtractStringValue safely extracts string value from various types
 func (rh *RuleHelpers) ExtractStringValue(value interface{}) string {
 	return ctyValueToString(value)
+}
+
+// ctyValueToString converts a cty.Value to string
+func ctyValueToString(value interface{}) string {
+	if ctyVal, ok := value.(cty.Value); ok {
+		if ctyVal.Type() == cty.String && ctyVal.IsKnown() && !ctyVal.IsNull() {
+			return ctyVal.AsString()
+		}
+		// For non-string types, convert to string representation
+		return fmt.Sprintf("%v", ctyVal)
+	}
+	return fmt.Sprintf("%v", value)
 }
 
 // MatchesPattern checks if a string matches a regex pattern

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/heyimusa/go-terraform-linter/internal/parser"
 	"github.com/heyimusa/go-terraform-linter/internal/types"
 )
@@ -140,7 +139,7 @@ func (r *GCPOpenFirewallRule) GetDescription() string {
 	return "Detects overly permissive GCP firewall rules"
 }
 func (r *GCPOpenFirewallRule) GetSeverity() string { return "high" }
-func (r *GCPUnencryptedStorageRule) GetCategory() string { return "network" }
+func (r *GCPOpenFirewallRule) GetCategory() string { return "network" }
 func (r *GCPOpenFirewallRule) GetProvider() string { return "gcp" }
 func (r *GCPOpenFirewallRule) GetTags() []string { return []string{"security", "network", "firewall"} }
 func (r *GCPOpenFirewallRule) GetVersion() string { return "1.0.0" }

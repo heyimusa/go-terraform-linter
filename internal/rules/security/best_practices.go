@@ -11,6 +11,12 @@ import (
 type MissingTagsRule struct{}
 
 func (r *MissingTagsRule) GetName() string { return "MISSING_TAGS" }
+func (r *MissingTagsRule) GetDescription() string { return "Detects resources without proper tagging" }
+func (r *MissingTagsRule) GetSeverity() string { return "low" }
+func (r *MissingTagsRule) GetCategory() string { return "best-practices" }
+func (r *MissingTagsRule) GetProvider() string { return "multi" }
+func (r *MissingTagsRule) GetTags() []string { return []string{"best-practices", "tagging", "organization"} }
+func (r *MissingTagsRule) GetVersion() string { return "1.0.0" }
 
 func (r *MissingTagsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -36,6 +42,12 @@ func (r *MissingTagsRule) Check(config *parser.Config) []types.Issue {
 type DeprecatedResourcesRule struct{}
 
 func (r *DeprecatedResourcesRule) GetName() string { return "DEPRECATED_RESOURCES" }
+func (r *DeprecatedResourcesRule) GetDescription() string { return "Detects usage of deprecated Terraform resources" }
+func (r *DeprecatedResourcesRule) GetSeverity() string { return "medium" }
+func (r *DeprecatedResourcesRule) GetCategory() string { return "best-practices" }
+func (r *DeprecatedResourcesRule) GetProvider() string { return "aws" }
+func (r *DeprecatedResourcesRule) GetTags() []string { return []string{"best-practices", "deprecated", "modernization"} }
+func (r *DeprecatedResourcesRule) GetVersion() string { return "1.0.0" }
 
 func (r *DeprecatedResourcesRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -68,6 +80,12 @@ func (r *DeprecatedResourcesRule) Check(config *parser.Config) []types.Issue {
 type MissingBackupRule struct{}
 
 func (r *MissingBackupRule) GetName() string { return "MISSING_BACKUP" }
+func (r *MissingBackupRule) GetDescription() string { return "Detects resources without backup configurations" }
+func (r *MissingBackupRule) GetSeverity() string { return "high" }
+func (r *MissingBackupRule) GetCategory() string { return "reliability" }
+func (r *MissingBackupRule) GetProvider() string { return "aws" }
+func (r *MissingBackupRule) GetTags() []string { return []string{"reliability", "backup", "data-protection"} }
+func (r *MissingBackupRule) GetVersion() string { return "1.0.0" }
 
 func (r *MissingBackupRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -99,6 +117,12 @@ func (r *MissingBackupRule) Check(config *parser.Config) []types.Issue {
 type WeakCryptoRule struct{}
 
 func (r *WeakCryptoRule) GetName() string { return "WEAK_CRYPTO" }
+func (r *WeakCryptoRule) GetDescription() string { return "Detects weak cryptographic configurations" }
+func (r *WeakCryptoRule) GetSeverity() string { return "medium" }
+func (r *WeakCryptoRule) GetCategory() string { return "security" }
+func (r *WeakCryptoRule) GetProvider() string { return "aws" }
+func (r *WeakCryptoRule) GetTags() []string { return []string{"security", "cryptography", "tls"} }
+func (r *WeakCryptoRule) GetVersion() string { return "1.0.0" }
 
 func (r *WeakCryptoRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue

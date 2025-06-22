@@ -159,7 +159,7 @@ func (m *RuleMarketplace) InstallPackage(packageName, version string) error {
 
 // UninstallPackage uninstalls a rule package
 func (m *RuleMarketplace) UninstallPackage(packageName string) error {
-	pkg, exists := m.packages[packageName]
+	_, exists := m.packages[packageName]
 	if !exists {
 		return fmt.Errorf("package '%s' is not installed", packageName)
 	}
@@ -424,7 +424,7 @@ func (m *RuleMarketplace) refreshRepository(repo Repository) error {
 
 func (m *RuleMarketplace) pullGitRepository(repo Repository) error {
 	// Simplified git pull implementation
-	repoPath := filepath.Join(m.cacheDir, "repos", repo.Name)
+	_ = filepath.Join(m.cacheDir, "repos", repo.Name)
 	// Would execute: git -C repoPath pull origin branch
 	return nil
 }

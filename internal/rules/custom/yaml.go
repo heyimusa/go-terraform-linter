@@ -27,6 +27,30 @@ func (cr CustomRule) GetName() string {
 	return "CUSTOM_RULE: " + cr.ResourceType + "." + cr.Attribute
 }
 
+func (cr CustomRule) GetDescription() string {
+	return "Custom rule for " + cr.ResourceType + "." + cr.Attribute
+}
+
+func (cr CustomRule) GetSeverity() string {
+	return cr.Severity
+}
+
+func (cr CustomRule) GetCategory() string {
+	return "custom"
+}
+
+func (cr CustomRule) GetProvider() string {
+	return "multi"
+}
+
+func (cr CustomRule) GetTags() []string {
+	return []string{"custom", cr.ResourceType}
+}
+
+func (cr CustomRule) GetVersion() string {
+	return "1.0.0"
+}
+
 func (cr CustomRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
 	for _, block := range config.Blocks {

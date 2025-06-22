@@ -17,12 +17,16 @@ type AzurePublicAccessRule struct{}
 func (r *AzurePublicAccessRule) GetName() string {
 	return "AZURE_PUBLIC_ACCESS"
 }
+func (r *AzurePublicAccessRule) GetCategory() string { return "network" }
+func (r *AzurePublicAccessRule) GetProvider() string { return "azure" }
+func (r *AzurePublicAccessRule) GetTags() []string { return []string{"security", "azure", "public-access"} }
+func (r *AzurePublicAccessRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzurePublicAccessRule) Description() string {
+func (r *AzurePublicAccessRule) GetDescription() string {
 	return "Detects public access configurations in Azure resources"
 }
 
-func (r *AzurePublicAccessRule) Severity() string {
+func (r *AzurePublicAccessRule) GetSeverity() string {
 	return "high"
 }
 
@@ -38,7 +42,7 @@ func (r *AzurePublicAccessRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "Storage account has public network access enabled",
 						Description: "Storage accounts should not have public network access enabled for security",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        publicAccess.Range.Start.Line,
 					})
 				}
@@ -53,7 +57,7 @@ func (r *AzurePublicAccessRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "Container registry has public network access enabled",
 						Description: "Container registries should not have public network access enabled",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        publicAccess.Range.Start.Line,
 					})
 				}
@@ -70,7 +74,7 @@ func (r *AzurePublicAccessRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "Web app has public network access enabled",
 						Description: "Web apps should restrict public network access for security",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        publicAccess.Range.Start.Line,
 					})
 				}
@@ -87,12 +91,16 @@ type AzureUnencryptedStorageRule struct{}
 func (r *AzureUnencryptedStorageRule) GetName() string {
 	return "AZURE_UNENCRYPTED_STORAGE"
 }
+func (r *AzureUnencryptedStorageRule) GetCategory() string { return "storage" }
+func (r *AzureUnencryptedStorageRule) GetProvider() string { return "azure" }
+func (r *AzureUnencryptedStorageRule) GetTags() []string { return []string{"security", "azure", "encryption", "storage"} }
+func (r *AzureUnencryptedStorageRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureUnencryptedStorageRule) Description() string {
+func (r *AzureUnencryptedStorageRule) GetDescription() string {
 	return "Identifies unencrypted storage resources in Azure"
 }
 
-func (r *AzureUnencryptedStorageRule) Severity() string {
+func (r *AzureUnencryptedStorageRule) GetSeverity() string {
 	return "high"
 }
 
@@ -107,7 +115,7 @@ func (r *AzureUnencryptedStorageRule) Check(config *parser.Config) []types.Issue
 					Rule:        r.GetName(),
 					Message:     "Storage account encryption not specified",
 					Description: "Azure storage accounts should be encrypted by default",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        block.Range.Start.Line,
 				})
 			}
@@ -120,7 +128,7 @@ func (r *AzureUnencryptedStorageRule) Check(config *parser.Config) []types.Issue
 					Rule:        r.GetName(),
 					Message:     "Managed disk encryption not specified",
 					Description: "Azure managed disks should be encrypted by default",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        block.Range.Start.Line,
 				})
 			}
@@ -136,12 +144,16 @@ type AzureWeakPasswordRule struct{}
 func (r *AzureWeakPasswordRule) GetName() string {
 	return "AZURE_WEAK_PASSWORD"
 }
+func (r *AzureWeakPasswordRule) GetCategory() string { return "authentication" }
+func (r *AzureWeakPasswordRule) GetProvider() string { return "azure" }
+func (r *AzureWeakPasswordRule) GetTags() []string { return []string{"security", "azure", "authentication", "password"} }
+func (r *AzureWeakPasswordRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureWeakPasswordRule) Description() string {
+func (r *AzureWeakPasswordRule) GetDescription() string {
 	return "Detects weak password configurations in Azure resources"
 }
 
-func (r *AzureWeakPasswordRule) Severity() string {
+func (r *AzureWeakPasswordRule) GetSeverity() string {
 	return "medium"
 }
 
@@ -158,7 +170,7 @@ func (r *AzureWeakPasswordRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "Weak password detected in SQL server",
 						Description: "Use strong passwords for database administrators",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        password.Range.Start.Line,
 					})
 				}
@@ -175,12 +187,16 @@ type AzureMissingTagsRule struct{}
 func (r *AzureMissingTagsRule) GetName() string {
 	return "AZURE_MISSING_TAGS"
 }
+func (r *AzureMissingTagsRule) GetCategory() string { return "best-practices" }
+func (r *AzureMissingTagsRule) GetProvider() string { return "azure" }
+func (r *AzureMissingTagsRule) GetTags() []string { return []string{"best-practices", "azure", "tagging"} }
+func (r *AzureMissingTagsRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureMissingTagsRule) Description() string {
+func (r *AzureMissingTagsRule) GetDescription() string {
 	return "Resources without proper tagging in Azure"
 }
 
-func (r *AzureMissingTagsRule) Severity() string {
+func (r *AzureMissingTagsRule) GetSeverity() string {
 	return "low"
 }
 
@@ -210,7 +226,7 @@ func (r *AzureMissingTagsRule) Check(config *parser.Config) []types.Issue {
 							Rule:        r.GetName(),
 							Message:     "Resource missing tags",
 							Description: "Azure resources should be tagged for better organization and cost tracking",
-							Severity:    r.Severity(),
+							Severity:    r.GetSeverity(),
 							Line:        block.Range.Start.Line,
 						})
 					}
@@ -229,12 +245,16 @@ type AzureExposedSecretsRule struct{}
 func (r *AzureExposedSecretsRule) GetName() string {
 	return "AZURE_EXPOSED_SECRETS"
 }
+func (r *AzureExposedSecretsRule) GetCategory() string { return "security" }
+func (r *AzureExposedSecretsRule) GetProvider() string { return "azure" }
+func (r *AzureExposedSecretsRule) GetTags() []string { return []string{"security", "azure", "secrets"} }
+func (r *AzureExposedSecretsRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureExposedSecretsRule) Description() string {
+func (r *AzureExposedSecretsRule) GetDescription() string {
 	return "Hardcoded secrets in Azure configuration"
 }
 
-func (r *AzureExposedSecretsRule) Severity() string {
+func (r *AzureExposedSecretsRule) GetSeverity() string {
 	return "critical"
 }
 
@@ -448,12 +468,16 @@ type AzureUnrestrictedIngressRule struct{}
 func (r *AzureUnrestrictedIngressRule) GetName() string {
 	return "AZURE_UNRESTRICTED_INGRESS"
 }
+func (r *AzureUnrestrictedIngressRule) GetCategory() string { return "network" }
+func (r *AzureUnrestrictedIngressRule) GetProvider() string { return "azure" }
+func (r *AzureUnrestrictedIngressRule) GetTags() []string { return []string{"security", "azure", "network", "ingress"} }
+func (r *AzureUnrestrictedIngressRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureUnrestrictedIngressRule) Description() string {
+func (r *AzureUnrestrictedIngressRule) GetDescription() string {
 	return "Network security groups with overly permissive rules"
 }
 
-func (r *AzureUnrestrictedIngressRule) Severity() string {
+func (r *AzureUnrestrictedIngressRule) GetSeverity() string {
 	return "high"
 }
 
@@ -468,7 +492,7 @@ func (r *AzureUnrestrictedIngressRule) Check(config *parser.Config) []types.Issu
 						Rule:        r.GetName(),
 						Message:     "Unrestricted ingress rule detected",
 						Description: "Network security rules should not allow access from anywhere",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        sourceAddressPrefix.Range.Start.Line,
 					})
 				}
@@ -485,12 +509,16 @@ type AzureDeprecatedResourcesRule struct{}
 func (r *AzureDeprecatedResourcesRule) GetName() string {
 	return "AZURE_DEPRECATED_RESOURCES"
 }
+func (r *AzureDeprecatedResourcesRule) GetCategory() string { return "best-practices" }
+func (r *AzureDeprecatedResourcesRule) GetProvider() string { return "azure" }
+func (r *AzureDeprecatedResourcesRule) GetTags() []string { return []string{"best-practices", "azure", "deprecated"} }
+func (r *AzureDeprecatedResourcesRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureDeprecatedResourcesRule) Description() string {
+func (r *AzureDeprecatedResourcesRule) GetDescription() string {
 	return "Usage of deprecated Azure resources"
 }
 
-func (r *AzureDeprecatedResourcesRule) Severity() string {
+func (r *AzureDeprecatedResourcesRule) GetSeverity() string {
 	return "medium"
 }
 
@@ -509,7 +537,7 @@ func (r *AzureDeprecatedResourcesRule) Check(config *parser.Config) []types.Issu
 						Rule:        r.GetName(),
 						Message:     "Deprecated resource type used",
 						Description: "Consider using newer Azure resource types for better security and features",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        block.Range.Start.Line,
 					})
 					break
@@ -527,12 +555,16 @@ type AzureMissingBackupRule struct{}
 func (r *AzureMissingBackupRule) GetName() string {
 	return "AZURE_MISSING_BACKUP"
 }
+func (r *AzureMissingBackupRule) GetCategory() string { return "reliability" }
+func (r *AzureMissingBackupRule) GetProvider() string { return "azure" }
+func (r *AzureMissingBackupRule) GetTags() []string { return []string{"reliability", "azure", "backup"} }
+func (r *AzureMissingBackupRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureMissingBackupRule) Description() string {
+func (r *AzureMissingBackupRule) GetDescription() string {
 	return "Resources without backup configurations"
 }
 
-func (r *AzureMissingBackupRule) Severity() string {
+func (r *AzureMissingBackupRule) GetSeverity() string {
 	return "high"
 }
 
@@ -547,7 +579,7 @@ func (r *AzureMissingBackupRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "SQL database backup retention not configured",
 						Description: "Azure SQL databases should have backup retention configured",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        backupRetentionDays.Range.Start.Line,
 					})
 				}
@@ -564,12 +596,16 @@ type AzureWeakCryptoRule struct{}
 func (r *AzureWeakCryptoRule) GetName() string {
 	return "AZURE_WEAK_CRYPTO"
 }
+func (r *AzureWeakCryptoRule) GetCategory() string { return "security" }
+func (r *AzureWeakCryptoRule) GetProvider() string { return "azure" }
+func (r *AzureWeakCryptoRule) GetTags() []string { return []string{"security", "azure", "cryptography"} }
+func (r *AzureWeakCryptoRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureWeakCryptoRule) Description() string {
+func (r *AzureWeakCryptoRule) GetDescription() string {
 	return "Weak cryptographic configurations in Azure"
 }
 
-func (r *AzureWeakCryptoRule) Severity() string {
+func (r *AzureWeakCryptoRule) GetSeverity() string {
 	return "medium"
 }
 
@@ -588,7 +624,7 @@ func (r *AzureWeakCryptoRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "HTTPS only not enforced",
 						Description: "Web apps should enforce HTTPS only for security",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        httpsOnly.Range.Start.Line,
 					})
 				}
@@ -598,7 +634,7 @@ func (r *AzureWeakCryptoRule) Check(config *parser.Config) []types.Issue {
 					Rule:        r.GetName(),
 					Message:     "HTTPS only setting not specified",
 					Description: "Web apps should explicitly set https_only = true",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        block.Range.Start.Line,
 				})
 			}
@@ -610,7 +646,7 @@ func (r *AzureWeakCryptoRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "Weak TLS version configured",
 						Description: "Use TLS 1.2 or higher for better security",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        minTlsVersion.Range.Start.Line,
 					})
 				}
@@ -626,7 +662,7 @@ func (r *AzureWeakCryptoRule) Check(config *parser.Config) []types.Issue {
 						Rule:        r.GetName(),
 						Message:     "Storage account encryption disabled",
 						Description: "Azure storage accounts should have encryption enabled",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        encryption.Range.Start.Line,
 					})
 				}
@@ -643,12 +679,16 @@ type AzureExcessivePermissionsRule struct{}
 func (r *AzureExcessivePermissionsRule) GetName() string {
 	return "AZURE_EXCESSIVE_PERMISSIONS"
 }
+func (r *AzureExcessivePermissionsRule) GetCategory() string { return "iam" }
+func (r *AzureExcessivePermissionsRule) GetProvider() string { return "azure" }
+func (r *AzureExcessivePermissionsRule) GetTags() []string { return []string{"security", "azure", "iam", "permissions"} }
+func (r *AzureExcessivePermissionsRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureExcessivePermissionsRule) Description() string {
+func (r *AzureExcessivePermissionsRule) GetDescription() string {
 	return "Azure roles with excessive permissions"
 }
 
-func (r *AzureExcessivePermissionsRule) Severity() string {
+func (r *AzureExcessivePermissionsRule) GetSeverity() string {
 	return "high"
 }
 
@@ -666,7 +706,7 @@ func (r *AzureExcessivePermissionsRule) Check(config *parser.Config) []types.Iss
 						Rule:        r.GetName(),
 						Message:     "Excessive permissions detected",
 						Description: "Azure role definitions should follow least privilege principle",
-						Severity:    r.Severity(),
+						Severity:    r.GetSeverity(),
 						Line:        permissions.Range.Start.Line,
 					})
 				}
@@ -683,12 +723,16 @@ type AzureOpenPortsRule struct{}
 func (r *AzureOpenPortsRule) GetName() string {
 	return "AZURE_OPEN_PORTS"
 }
+func (r *AzureOpenPortsRule) GetCategory() string { return "network" }
+func (r *AzureOpenPortsRule) GetProvider() string { return "azure" }
+func (r *AzureOpenPortsRule) GetTags() []string { return []string{"security", "azure", "network", "ports"} }
+func (r *AzureOpenPortsRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureOpenPortsRule) Description() string {
+func (r *AzureOpenPortsRule) GetDescription() string {
 	return "Sensitive ports open to the world in Azure"
 }
 
-func (r *AzureOpenPortsRule) Severity() string {
+func (r *AzureOpenPortsRule) GetSeverity() string {
 	return "high"
 }
 
@@ -708,7 +752,7 @@ func (r *AzureOpenPortsRule) Check(config *parser.Config) []types.Issue {
 									Rule:        r.GetName(),
 									Message:     "Sensitive port open to the world",
 									Description: "Port " + sensitivePort + " should not be open to 0.0.0.0/0",
-									Severity:    r.Severity(),
+									Severity:    r.GetSeverity(),
 									Line:        port.Range.Start.Line,
 								})
 								break
@@ -729,12 +773,16 @@ type AzureEncryptionComplianceRule struct{}
 func (r *AzureEncryptionComplianceRule) GetName() string {
 	return "AZURE_ENCRYPTION_COMPLIANCE"
 }
+func (r *AzureEncryptionComplianceRule) GetCategory() string { return "compliance" }
+func (r *AzureEncryptionComplianceRule) GetProvider() string { return "azure" }
+func (r *AzureEncryptionComplianceRule) GetTags() []string { return []string{"security", "azure", "compliance", "encryption"} }
+func (r *AzureEncryptionComplianceRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureEncryptionComplianceRule) Description() string {
+func (r *AzureEncryptionComplianceRule) GetDescription() string {
 	return "Missing encryption for compliance (HIPAA, SOC2, PCI-DSS)"
 }
 
-func (r *AzureEncryptionComplianceRule) Severity() string {
+func (r *AzureEncryptionComplianceRule) GetSeverity() string {
 	return "critical"
 }
 
@@ -758,7 +806,7 @@ func (r *AzureEncryptionComplianceRule) Check(config *parser.Config) []types.Iss
 							Rule:        r.GetName(),
 							Message:     "Encryption attribute missing",
 							Description: "Enable encryption for compliance (HIPAA, SOC2, PCI-DSS)",
-							Severity:    r.Severity(),
+							Severity:    r.GetSeverity(),
 							Line:        block.Range.Start.Line,
 						})
 					}
@@ -777,12 +825,16 @@ type AzureCostOptimizationRule struct{}
 func (r *AzureCostOptimizationRule) GetName() string {
 	return "AZURE_COST_OPTIMIZATION"
 }
+func (r *AzureCostOptimizationRule) GetCategory() string { return "cost" }
+func (r *AzureCostOptimizationRule) GetProvider() string { return "azure" }
+func (r *AzureCostOptimizationRule) GetTags() []string { return []string{"cost", "azure", "optimization"} }
+func (r *AzureCostOptimizationRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureCostOptimizationRule) Description() string {
+func (r *AzureCostOptimizationRule) GetDescription() string {
 	return "Large/expensive Azure instance types detected"
 }
 
-func (r *AzureCostOptimizationRule) Severity() string {
+func (r *AzureCostOptimizationRule) GetSeverity() string {
 	return "medium"
 }
 
@@ -808,7 +860,7 @@ func (r *AzureCostOptimizationRule) Check(config *parser.Config) []types.Issue {
 								Rule:        r.GetName(),
 								Message:     "Expensive VM size detected",
 								Description: "Consider using smaller VM sizes for cost optimization",
-								Severity:    r.Severity(),
+								Severity:    r.GetSeverity(),
 								Line:        vmSize.Range.Start.Line,
 							})
 							break
@@ -828,12 +880,16 @@ type AzureWeakAuthenticationRule struct{}
 func (r *AzureWeakAuthenticationRule) GetName() string {
 	return "AZURE_WEAK_AUTHENTICATION"
 }
+func (r *AzureWeakAuthenticationRule) GetCategory() string { return "authentication" }
+func (r *AzureWeakAuthenticationRule) GetProvider() string { return "azure" }
+func (r *AzureWeakAuthenticationRule) GetTags() []string { return []string{"security", "azure", "authentication"} }
+func (r *AzureWeakAuthenticationRule) GetVersion() string { return "1.0.0" }
 
-func (r *AzureWeakAuthenticationRule) Description() string {
+func (r *AzureWeakAuthenticationRule) GetDescription() string {
 	return "Weak authentication configurations in Azure"
 }
 
-func (r *AzureWeakAuthenticationRule) Severity() string {
+func (r *AzureWeakAuthenticationRule) GetSeverity() string {
 	return "high"
 }
 
@@ -855,7 +911,7 @@ func (r *AzureWeakAuthenticationRule) Check(config *parser.Config) []types.Issue
 							Rule:        r.GetName(),
 							Message:     "Debug mode enabled in production",
 							Description: "APP_DEBUG should be false in production environments",
-							Severity:    r.Severity(),
+							Severity:    r.GetSeverity(),
 							Line:        appSettings.Range.Start.Line,
 						})
 						break
@@ -872,7 +928,7 @@ func (r *AzureWeakAuthenticationRule) Check(config *parser.Config) []types.Issue
 							Rule:        r.GetName(),
 							Message:     "Weak application key configuration",
 							Description: "APP_KEY should be stored securely and not hardcoded",
-							Severity:    r.Severity(),
+							Severity:    r.GetSeverity(),
 							Line:        appSettings.Range.Start.Line,
 						})
 						break
@@ -893,7 +949,7 @@ func (r *AzureWeakAuthenticationRule) Check(config *parser.Config) []types.Issue
 							Rule:        r.GetName(),
 							Message:     "Debug mode enabled in variable default",
 							Description: "APP_DEBUG should be false in production environments",
-							Severity:    r.Severity(),
+							Severity:    r.GetSeverity(),
 							Line:        defaultValue.Range.Start.Line,
 						})
 						break
@@ -910,7 +966,7 @@ func (r *AzureWeakAuthenticationRule) Check(config *parser.Config) []types.Issue
 							Rule:        r.GetName(),
 							Message:     "Weak application key configuration in variable default",
 							Description: "APP_KEY should be stored securely and not hardcoded in variable defaults",
-							Severity:    r.Severity(),
+							Severity:    r.GetSeverity(),
 							Line:        defaultValue.Range.Start.Line,
 						})
 						break
@@ -929,7 +985,7 @@ func (r *AzureWeakAuthenticationRule) Check(config *parser.Config) []types.Issue
 					Rule:        r.GetName(),
 					Message:     "Debug mode enabled",
 					Description: "APP_DEBUG should be false in production environments",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        attr.Range.Start.Line,
 				})
 			}
@@ -941,7 +997,7 @@ func (r *AzureWeakAuthenticationRule) Check(config *parser.Config) []types.Issue
 					Rule:        r.GetName(),
 					Message:     "Weak session lifetime configuration",
 					Description: "Session lifetime should be set to a reasonable value for security",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        attr.Range.Start.Line,
 				})
 			}
@@ -966,7 +1022,7 @@ func (r *AzureExposedSecretsRule) Check(config *parser.Config) []types.Issue {
 					Rule:        r.GetName(),
 					Message:     "Hardcoded APP_KEY detected",
 					Description: "APP_KEY should not be hardcoded. Use Azure Key Vault or environment variables.",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        attr.Range.Start.Line,
 				})
 			}
@@ -976,7 +1032,7 @@ func (r *AzureExposedSecretsRule) Check(config *parser.Config) []types.Issue {
 					Rule:        r.GetName(),
 					Message:     "Hardcoded database connection string with credentials",
 					Description: "Database connection strings should not contain hardcoded credentials.",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        attr.Range.Start.Line,
 				})
 			}
@@ -986,7 +1042,7 @@ func (r *AzureExposedSecretsRule) Check(config *parser.Config) []types.Issue {
 					Rule:        r.GetName(),
 					Message:     "Hardcoded Microsoft client secret",
 					Description: "Microsoft OAuth client secrets should not be hardcoded.",
-					Severity:    r.Severity(),
+					Severity:    r.GetSeverity(),
 					Line:        attr.Range.Start.Line,
 				})
 			}
@@ -1014,7 +1070,7 @@ func (r *AzureExposedSecretsRule) Check(config *parser.Config) []types.Issue {
 							Rule:        r.GetName(),
 							Message:     "Hardcoded Azure provider credential: " + attrName,
 							Description: "Azure provider credentials should be stored in variables or environment.",
-							Severity:    r.Severity(),
+							Severity:    r.GetSeverity(),
 							Line:        attr.Range.Start.Line,
 						})
 					}

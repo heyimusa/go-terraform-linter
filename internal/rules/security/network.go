@@ -109,6 +109,12 @@ func (r *OpenPortsRule) Check(config *parser.Config) []types.Issue {
 type UnrestrictedIngressRule struct{}
 
 func (r *UnrestrictedIngressRule) GetName() string { return "UNRESTRICTED_INGRESS" }
+func (r *UnrestrictedIngressRule) GetDescription() string { return "Detects security groups with overly permissive rules" }
+func (r *UnrestrictedIngressRule) GetSeverity() string { return "high" }
+func (r *UnrestrictedIngressRule) GetCategory() string { return "network" }
+func (r *UnrestrictedIngressRule) GetProvider() string { return "aws" }
+func (r *UnrestrictedIngressRule) GetTags() []string { return []string{"security", "network", "ingress"} }
+func (r *UnrestrictedIngressRule) GetVersion() string { return "1.0.0" }
 
 func (r *UnrestrictedIngressRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue

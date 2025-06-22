@@ -15,6 +15,12 @@ type AWSExposedSecretsRule struct{}
 func (r *AWSExposedSecretsRule) GetName() string {
 	return "AWS_EXPOSED_SECRETS"
 }
+func (r *AWSExposedSecretsRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSExposedSecretsRule) GetSeverity() string { return "medium" }
+func (r *AWSExposedSecretsRule) GetCategory() string { return "security" }
+func (r *AWSExposedSecretsRule) GetProvider() string { return "aws" }
+func (r *AWSExposedSecretsRule) GetTags() []string { return []string{"security", "aws", "secrets"} }
+func (r *AWSExposedSecretsRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSExposedSecretsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -137,6 +143,12 @@ type AWSPublicS3BucketRule struct{}
 func (r *AWSPublicS3BucketRule) GetName() string {
 	return "AWS_PUBLIC_S3_BUCKET"
 }
+func (r *AWSPublicS3BucketRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSPublicS3BucketRule) GetSeverity() string { return "medium" }
+func (r *AWSPublicS3BucketRule) GetCategory() string { return "storage" }
+func (r *AWSPublicS3BucketRule) GetProvider() string { return "aws" }
+func (r *AWSPublicS3BucketRule) GetTags() []string { return []string{"security", "aws", "s3", "public-access"} }
+func (r *AWSPublicS3BucketRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSPublicS3BucketRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -196,6 +208,12 @@ type AWSUnencryptedStorageRule struct{}
 func (r *AWSUnencryptedStorageRule) GetName() string {
 	return "AWS_UNENCRYPTED_STORAGE"
 }
+func (r *AWSUnencryptedStorageRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSUnencryptedStorageRule) GetSeverity() string { return "medium" }
+func (r *AWSUnencryptedStorageRule) GetCategory() string { return "storage" }
+func (r *AWSUnencryptedStorageRule) GetProvider() string { return "aws" }
+func (r *AWSUnencryptedStorageRule) GetTags() []string { return []string{"security", "aws", "encryption", "storage"} }
+func (r *AWSUnencryptedStorageRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSUnencryptedStorageRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -250,6 +268,12 @@ type AWSWeakPasswordsRule struct{}
 func (r *AWSWeakPasswordsRule) GetName() string {
 	return "AWS_WEAK_PASSWORDS"
 }
+func (r *AWSWeakPasswordsRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSWeakPasswordsRule) GetSeverity() string { return "medium" }
+func (r *AWSWeakPasswordsRule) GetCategory() string { return "authentication" }
+func (r *AWSWeakPasswordsRule) GetProvider() string { return "aws" }
+func (r *AWSWeakPasswordsRule) GetTags() []string { return []string{"security", "aws", "authentication", "password"} }
+func (r *AWSWeakPasswordsRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSWeakPasswordsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -293,6 +317,12 @@ type AWSMissingTagsRule struct{}
 func (r *AWSMissingTagsRule) GetName() string {
 	return "AWS_MISSING_TAGS"
 }
+func (r *AWSMissingTagsRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSMissingTagsRule) GetSeverity() string { return "medium" }
+func (r *AWSMissingTagsRule) GetCategory() string { return "best-practices" }
+func (r *AWSMissingTagsRule) GetProvider() string { return "aws" }
+func (r *AWSMissingTagsRule) GetTags() []string { return []string{"best-practices", "aws", "tagging"} }
+func (r *AWSMissingTagsRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSMissingTagsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -334,6 +364,12 @@ type AWSUnrestrictedIngressRule struct{}
 func (r *AWSUnrestrictedIngressRule) GetName() string {
 	return "AWS_UNRESTRICTED_INGRESS"
 }
+func (r *AWSUnrestrictedIngressRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSUnrestrictedIngressRule) GetSeverity() string { return "medium" }
+func (r *AWSUnrestrictedIngressRule) GetCategory() string { return "network" }
+func (r *AWSUnrestrictedIngressRule) GetProvider() string { return "aws" }
+func (r *AWSUnrestrictedIngressRule) GetTags() []string { return []string{"security", "aws", "network", "ingress"} }
+func (r *AWSUnrestrictedIngressRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSUnrestrictedIngressRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -367,6 +403,12 @@ type AWSDeprecatedResourcesRule struct{}
 func (r *AWSDeprecatedResourcesRule) GetName() string {
 	return "AWS_DEPRECATED_RESOURCES"
 }
+func (r *AWSDeprecatedResourcesRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSDeprecatedResourcesRule) GetSeverity() string { return "medium" }
+func (r *AWSDeprecatedResourcesRule) GetCategory() string { return "best-practices" }
+func (r *AWSDeprecatedResourcesRule) GetProvider() string { return "aws" }
+func (r *AWSDeprecatedResourcesRule) GetTags() []string { return []string{"best-practices", "aws", "deprecated"} }
+func (r *AWSDeprecatedResourcesRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSDeprecatedResourcesRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -402,6 +444,12 @@ type AWSMissingBackupRule struct{}
 func (r *AWSMissingBackupRule) GetName() string {
 	return "AWS_MISSING_BACKUP"
 }
+func (r *AWSMissingBackupRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSMissingBackupRule) GetSeverity() string { return "medium" }
+func (r *AWSMissingBackupRule) GetCategory() string { return "reliability" }
+func (r *AWSMissingBackupRule) GetProvider() string { return "aws" }
+func (r *AWSMissingBackupRule) GetTags() []string { return []string{"reliability", "aws", "backup"} }
+func (r *AWSMissingBackupRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSMissingBackupRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -449,6 +497,12 @@ type AWSWeakCryptoRule struct{}
 func (r *AWSWeakCryptoRule) GetName() string {
 	return "AWS_WEAK_CRYPTO"
 }
+func (r *AWSWeakCryptoRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSWeakCryptoRule) GetSeverity() string { return "medium" }
+func (r *AWSWeakCryptoRule) GetCategory() string { return "security" }
+func (r *AWSWeakCryptoRule) GetProvider() string { return "aws" }
+func (r *AWSWeakCryptoRule) GetTags() []string { return []string{"security", "aws", "cryptography"} }
+func (r *AWSWeakCryptoRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSWeakCryptoRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -487,6 +541,12 @@ type AWSExcessivePermissionsRule struct{}
 func (r *AWSExcessivePermissionsRule) GetName() string {
 	return "AWS_EXCESSIVE_PERMISSIONS"
 }
+func (r *AWSExcessivePermissionsRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSExcessivePermissionsRule) GetSeverity() string { return "medium" }
+func (r *AWSExcessivePermissionsRule) GetCategory() string { return "iam" }
+func (r *AWSExcessivePermissionsRule) GetProvider() string { return "aws" }
+func (r *AWSExcessivePermissionsRule) GetTags() []string { return []string{"security", "aws", "iam", "permissions"} }
+func (r *AWSExcessivePermissionsRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSExcessivePermissionsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -520,6 +580,12 @@ type AWSOpenPortsRule struct{}
 func (r *AWSOpenPortsRule) GetName() string {
 	return "AWS_OPEN_PORTS"
 }
+func (r *AWSOpenPortsRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSOpenPortsRule) GetSeverity() string { return "medium" }
+func (r *AWSOpenPortsRule) GetCategory() string { return "network" }
+func (r *AWSOpenPortsRule) GetProvider() string { return "aws" }
+func (r *AWSOpenPortsRule) GetTags() []string { return []string{"security", "aws", "network", "ports"} }
+func (r *AWSOpenPortsRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSOpenPortsRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -560,6 +626,12 @@ type AWSEncryptionComplianceRule struct{}
 func (r *AWSEncryptionComplianceRule) GetName() string {
 	return "AWS_ENCRYPTION_COMPLIANCE"
 }
+func (r *AWSEncryptionComplianceRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSEncryptionComplianceRule) GetSeverity() string { return "medium" }
+func (r *AWSEncryptionComplianceRule) GetCategory() string { return "compliance" }
+func (r *AWSEncryptionComplianceRule) GetProvider() string { return "aws" }
+func (r *AWSEncryptionComplianceRule) GetTags() []string { return []string{"security", "aws", "compliance", "encryption"} }
+func (r *AWSEncryptionComplianceRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSEncryptionComplianceRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
@@ -602,6 +674,12 @@ type AWSCostOptimizationRule struct{}
 func (r *AWSCostOptimizationRule) GetName() string {
 	return "AWS_COST_OPTIMIZATION"
 }
+func (r *AWSCostOptimizationRule) GetDescription() string { return "AWS security rule" }
+func (r *AWSCostOptimizationRule) GetSeverity() string { return "medium" }
+func (r *AWSCostOptimizationRule) GetCategory() string { return "cost" }
+func (r *AWSCostOptimizationRule) GetProvider() string { return "aws" }
+func (r *AWSCostOptimizationRule) GetTags() []string { return []string{"cost", "aws", "optimization"} }
+func (r *AWSCostOptimizationRule) GetVersion() string { return "1.0.0" }
 
 func (r *AWSCostOptimizationRule) Check(config *parser.Config) []types.Issue {
 	var issues []types.Issue
