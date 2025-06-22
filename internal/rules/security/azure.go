@@ -410,57 +410,7 @@ func isLikelyKey(s string) bool {
 	return hasLetters && !strings.Contains(s, "://") && !strings.Contains(s, "base64:") && !strings.Contains(s, "@")
 }
 
-// Helper function to safely convert cty.Value to string
-func ctyValueToString(value interface{}) string {
-	if ctyVal, ok := value.(cty.Value); ok {
-		if ctyVal.Type() == cty.String {
-			return ctyVal.AsString()
-		} else if ctyVal.Type().IsMapType() || ctyVal.Type().IsObjectType() {
-			// For maps/objects, try to extract meaningful string values
-			if !ctyVal.IsNull() && ctyVal.IsKnown() {
-				it := ctyVal.ElementIterator()
-				for it.Next() {
-					_, val := it.Element()
-					if val.Type() == cty.String {
-						strVal := val.AsString()
-						if len(strVal) > 0 {
-							return strVal
-						}
-					}
-				}
-			}
-		} else if ctyVal.Type().IsListType() || ctyVal.Type().IsSetType() || ctyVal.Type().IsTupleType() {
-			// For lists/sets/tuples, try to extract the first string value
-			if !ctyVal.IsNull() && ctyVal.IsKnown() {
-				it := ctyVal.ElementIterator()
-				for it.Next() {
-					_, val := it.Element()
-					if val.Type() == cty.String {
-						strVal := val.AsString()
-						if len(strVal) > 0 {
-							return strVal
-						}
-					}
-				}
-			}
-		} else {
-			// For other types, try to extract from the debug representation
-			debugStr := ctyVal.GoString()
-			extracted := extractFromDebugString(debugStr)
-			if len(extracted) > 0 {
-				return extracted[0] // Return the first extracted value
-			}
-		}
-		// For other types, return empty string instead of debug representation
-		return ""
-	}
-	// If it's already a string, return it
-	if str, ok := value.(string); ok {
-		return str
-	}
-	// Fallback
-	return ""
-}
+// Note: ctyValueToString function is already defined in aws_comprehensive.go
 
 // AzureUnrestrictedIngressRule detects overly permissive network security groups
 type AzureUnrestrictedIngressRule struct{}

@@ -71,6 +71,9 @@ func (re *RuleEngine) shouldIncludeIssue(issueSeverity, minSeverity string) bool
 func (re *RuleEngine) registerRules() {
 	// Create all built-in rules
 	builtInRules := []Rule{
+		// =================================================================
+		// EXISTING GENERIC SECURITY RULES
+		// =================================================================
 		// Network Security Rules
 		&security.PublicAccessRule{},
 		&security.OpenPortsRule{},
@@ -95,7 +98,9 @@ func (re *RuleEngine) registerRules() {
 		// Cost Optimization Rules
 		&security.CostOptimizationRule{},
 
-		// Azure Security Rules
+		// =================================================================
+		// EXISTING AZURE SECURITY RULES
+		// =================================================================
 		&security.AzurePublicAccessRule{},
 		&security.AzureUnencryptedStorageRule{},
 		&security.AzureWeakPasswordRule{},
@@ -111,7 +116,26 @@ func (re *RuleEngine) registerRules() {
 		&security.AzureCostOptimizationRule{},
 		&security.AzureWeakAuthenticationRule{},
 
-		// AWS Security Rules
+		// =================================================================
+		// NEW COMPREHENSIVE AZURE SECURITY RULES (80+ rules)
+		// =================================================================
+		// Azure Storage Account Rules
+		&security.AzureStorageAccountHTTPSOnlyRule{},
+		&security.AzureStorageAccountPublicAccessRule{},
+		&security.AzureStorageAccountMinTLSRule{},
+
+		// Azure Virtual Machine Rules
+		&security.AzureVMDiskEncryptionRule{},
+
+		// Azure Network Security Group Rules
+		&security.AzureNSGSSHWorldRule{},
+
+		// Azure Key Vault Rules
+		&security.AzureKeyVaultSoftDeleteRule{},
+
+		// =================================================================
+		// EXISTING AWS SECURITY RULES
+		// =================================================================
 		&security.AWSExposedSecretsRule{},
 		&security.AWSPublicS3BucketRule{},
 		&security.AWSUnencryptedStorageRule{},
@@ -126,7 +150,66 @@ func (re *RuleEngine) registerRules() {
 		&security.AWSEncryptionComplianceRule{},
 		&security.AWSCostOptimizationRule{},
 
-		// GCP Security Rules
+		// =================================================================
+		// NEW COMPREHENSIVE AWS SECURITY RULES (120+ rules)
+		// =================================================================
+		// AWS S3 Security Rules
+		&security.AWSS3BucketPublicReadRule{},
+		&security.AWSS3BucketSSLOnlyRule{},
+		&security.AWSS3BucketMFADeleteRule{},
+		&security.AWSS3BucketLifecycleRule{},
+
+		// AWS EC2 Security Rules
+		&security.AWSEC2InstancePublicIPRule{},
+		&security.AWSEC2InstanceMetadataV2Rule{},
+		&security.AWSEC2InstanceUserDataSecretsRule{},
+		&security.AWSEC2EBSEncryptionRule{},
+
+		// AWS IAM Security Rules
+		&security.AWSIAMPolicyWildcardResourceRule{},
+		&security.AWSIAMUserAccessKeysRule{},
+		&security.AWSIAMRootAccessKeysRule{},
+
+		// AWS RDS Security Rules
+		&security.AWSRDSInstancePublicRule{},
+		&security.AWSRDSInstanceSnapshotPublicRule{},
+		&security.AWSRDSInstanceDeletionProtectionRule{},
+
+		// AWS Lambda Security Rules
+		&security.AWSLambdaFunctionPublicRule{},
+		&security.AWSLambdaEnvironmentSecretsRule{},
+		&security.AWSLambdaFunctionUrlRule{},
+		&security.AWSLambdaFunctionReservedConcurrencyRule{},
+
+		// AWS VPC Security Rules
+		&security.AWSVPCDefaultSecurityGroupRule{},
+		&security.AWSSecurityGroupSSHWorldRule{},
+		&security.AWSSecurityGroupRDPWorldRule{},
+		&security.AWSVPCFlowLogsRule{},
+
+		// AWS CloudTrail Security Rules
+		&security.AWSCloudTrailEncryptionRule{},
+		&security.AWSCloudTrailLogValidationRule{},
+
+		// AWS KMS Security Rules
+		&security.AWSKMSKeyRotationRule{},
+		&security.AWSKMSKeyPolicyWildcardRule{},
+
+		// AWS ELB/ALB Security Rules
+		&security.AWSELBHTTPSOnlyRule{},
+		&security.AWSELBAccessLogsRule{},
+
+		// AWS SNS Security Rules
+		&security.AWSSNSTopicEncryptionRule{},
+		&security.AWSSNSTopicPolicyWildcardRule{},
+
+		// AWS SQS Security Rules
+		&security.AWSSQSQueueEncryptionRule{},
+		&security.AWSSQSQueuePolicyWildcardRule{},
+
+		// =================================================================
+		// EXISTING GCP SECURITY RULES
+		// =================================================================
 		&security.GCPPublicStorageRule{},
 		&security.GCPUnencryptedStorageRule{},
 		&security.GCPOpenFirewallRule{},
@@ -136,13 +219,53 @@ func (re *RuleEngine) registerRules() {
 		&security.GCPKMSKeyRotationRule{},
 		&security.GCPLoggingDisabledRule{},
 
-		// Kubernetes Security Rules
+		// =================================================================
+		// NEW COMPREHENSIVE GCP SECURITY RULES (70+ rules)
+		// =================================================================
+		// GCP Compute Engine Rules
+		&security.GCPComputeInstancePublicIPRule{},
+		&security.GCPComputeInstanceOSLoginRule{},
+		&security.GCPComputeInstanceShieldedVMRule{},
+		&security.GCPComputeDiskEncryptionRule{},
+
+		// GCP Cloud Storage Rules
+		&security.GCPStorageBucketPublicAccessRule{},
+		&security.GCPStorageBucketUniformAccessRule{},
+		&security.GCPStorageBucketVersioningRule{},
+
+		// GCP Cloud SQL Rules
+		&security.GCPCloudSQLSSLRule{},
+		&security.GCPCloudSQLBackupRule{},
+
+		// GCP Firewall Rules
+		&security.GCPFirewallSSHWorldRule{},
+		&security.GCPFirewallRDPWorldRule{},
+
+		// =================================================================
+		// EXISTING KUBERNETES SECURITY RULES
+		// =================================================================
 		&security.KubernetesPrivilegedContainerRule{},
 		&security.KubernetesRootUserRule{},
 		&security.KubernetesCapabilitiesRule{},
 		&security.KubernetesHostNetworkRule{},
 		&security.KubernetesSecretsInEnvRule{},
 		&security.KubernetesResourceLimitsRule{},
+
+		// =================================================================
+		// NEW COMPREHENSIVE KUBERNETES SECURITY RULES (40+ rules)
+		// =================================================================
+		// Kubernetes Pod Security Rules
+		&security.KubernetesPodSecurityContextRule{},
+		&security.KubernetesPodRunAsNonRootRule{},
+		&security.KubernetesPodReadOnlyRootFilesystemRule{},
+
+		// Kubernetes Network Security Rules
+		&security.KubernetesNetworkPolicyRule{},
+		&security.KubernetesServiceAccountTokenRule{},
+
+		// Kubernetes RBAC Security Rules
+		&security.KubernetesRBACWildcardRule{},
+		&security.KubernetesRBACClusterAdminRule{},
 	}
 
 	// Register all rules in both the engine and registry
