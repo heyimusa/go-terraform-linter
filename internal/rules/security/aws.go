@@ -181,11 +181,27 @@ func (r *AWSPublicS3BucketRule) Check(config *parser.Config) []types.Issue {
 				}
 			}
 
-			// Check S3 bucket ACL
+			// Check S3 bucket ACL directly on aws_s3_bucket resource
+			if resourceType == "aws_s3_bucket" {
+				if aclAttr, exists := block.Attributes["acl"]; exists {
+					aclValue := strings.Trim(aclAttr.RawValue, `"`)
+					if aclValue == "public-read" || aclValue == "public-read-write" {
+						issues = append(issues, types.Issue{
+							Rule:        r.GetName(),
+							Severity:    "CRITICAL",
+							Message:     "S3 bucket has public ACL",
+							Description: "S3 buckets should not have public read/write ACLs.",
+							Line:        aclAttr.Range.Start.Line,
+						})
+					}
+				}
+			}
+
+			// Check S3 bucket ACL resource
 			if resourceType == "aws_s3_bucket_acl" {
 				if aclAttr, exists := block.Attributes["acl"]; exists {
-					if strings.Contains(aclAttr.RawValue, "public-read") || 
-					   strings.Contains(aclAttr.RawValue, "public-read-write") {
+					aclValue := strings.Trim(aclAttr.RawValue, `"`)
+					if aclValue == "public-read" || aclValue == "public-read-write" {
 						issues = append(issues, types.Issue{
 							Rule:        r.GetName(),
 							Severity:    "CRITICAL",
@@ -378,7 +394,8 @@ func (r *AWSUnrestrictedIngressRule) Check(config *parser.Config) []types.Issue 
 		if block.Type == "resource" && len(block.Labels) >= 2 {
 			resourceType := block.Labels[0]
 			
-			if resourceType == "aws_security_group" || resourceType == "aws_security_group_rule" {
+			if resourceType == "aws_security_group" {
+				// Check cidr_blocks directly on the resource
 				if cidrAttr, exists := block.Attributes["cidr_blocks"]; exists {
 					if strings.Contains(cidrAttr.RawValue, "0.0.0.0/0") {
 						issues = append(issues, types.Issue{
@@ -386,6 +403,38 @@ func (r *AWSUnrestrictedIngressRule) Check(config *parser.Config) []types.Issue 
 							Severity:    "CRITICAL",
 							Message:     "Security group allows unrestricted ingress (0.0.0.0/0)",
 							Description: "Security groups should not allow unrestricted access from the internet.",
+							Line:        cidrAttr.Range.Start.Line,
+						})
+					}
+				}
+				
+				// Check ingress blocks within the security group
+				for _, nestedBlock := range block.Blocks {
+					if nestedBlock.Type == "ingress" {
+						if cidrAttr, exists := nestedBlock.Attributes["cidr_blocks"]; exists {
+							if strings.Contains(cidrAttr.RawValue, "0.0.0.0/0") {
+								issues = append(issues, types.Issue{
+									Rule:        r.GetName(),
+									Severity:    "CRITICAL",
+									Message:     "Security group allows unrestricted ingress (0.0.0.0/0)",
+									Description: "Security groups should not allow unrestricted access from the internet.",
+									Line:        cidrAttr.Range.Start.Line,
+								})
+							}
+						}
+					}
+				}
+			}
+			
+			// Check standalone security group rules
+			if resourceType == "aws_security_group_rule" {
+				if cidrAttr, exists := block.Attributes["cidr_blocks"]; exists {
+					if strings.Contains(cidrAttr.RawValue, "0.0.0.0/0") {
+						issues = append(issues, types.Issue{
+							Rule:        r.GetName(),
+							Severity:    "CRITICAL",
+							Message:     "Security group rule allows unrestricted ingress (0.0.0.0/0)",
+							Description: "Security group rules should not allow unrestricted access from the internet.",
 							Line:        cidrAttr.Range.Start.Line,
 						})
 					}

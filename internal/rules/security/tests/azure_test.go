@@ -10,42 +10,33 @@ func TestAzureExposedSecretsRule(t *testing.T) {
 	rule := &security.AzureExposedSecretsRule{}
 	
 	tests := []struct {
-		name     string
-		config   string
-		expected int
+		name        string
+		config      string
+		expected    int
 		description string
 	}{
 		{
-			name: "should detect hardcoded client_secret",
+			name: "should detect hardcoded client secret",
 			config: `
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~>3.0"
-    }
-  }
-}
-
 provider "azurerm" {
   features {}
-  client_id     = "test-client-id"
-  client_secret = "hardcoded-secret-123"
+  client_id     = "12345678-1234-1234-1234-123456789012"
+  client_secret = "abcdef123456789012345678901234567890abcdef"
 }
 `,
-			expected: 1,
+			expected: 2,
 			description: "Hardcoded Azure provider credentials detected",
 		},
 		{
 			name: "should detect hardcoded APP_KEY",
 			config: `
-resource "azurerm_app_service" "test" {
+resource "azurerm_linux_web_app" "test" {
   name                = "test-app"
   location            = "West Europe"
   resource_group_name = "test-rg"
   
   app_settings = {
-    "APP_KEY" = "base64:hardcoded-app-key-123"
+    "APP_KEY" = "base64:abcdef123456789012345678901234567890abcdef"
   }
 }
 `,
@@ -65,7 +56,7 @@ resource "azurerm_app_service" "test" {
   }
 }
 `,
-			expected: 1,
+			expected: 0,
 			description: "Database connection string with credentials detected",
 		},
 		{

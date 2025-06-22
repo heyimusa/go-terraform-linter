@@ -460,6 +460,12 @@ func (r *Report) GenerateSARIF() ([]byte, error) {
 	// Convert results to SARIF format
 	var sarifResults []SARIFResult
 	for _, issue := range r.Issues {
+		// Ensure line number is at least 1 for SARIF compliance
+		startLine := issue.Line
+		if startLine < 1 {
+			startLine = 1
+		}
+		
 		sarifResult := SARIFResult{
 			RuleID:    issue.Rule,
 			RuleIndex: ruleIndexMap[issue.Rule],
@@ -474,7 +480,7 @@ func (r *Report) GenerateSARIF() ([]byte, error) {
 							URI: issue.File,
 						},
 						Region: SARIFRegion{
-							StartLine: issue.Line,
+							StartLine: startLine,
 						},
 					},
 				},

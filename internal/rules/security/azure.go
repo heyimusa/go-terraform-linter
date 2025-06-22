@@ -37,7 +37,9 @@ func (r *AzurePublicAccessRule) Check(config *parser.Config) []types.Issue {
 		// Check Azure Storage Account public access
 		if block.Type == "resource" && len(block.Labels) >= 2 && block.Labels[0] == "azurerm_storage_account" {
 			if publicAccess, exists := block.Attributes["public_network_access_enabled"]; exists {
-				if ctyValueToString(publicAccess.Value) == "true" {
+				value := ctyValueToString(publicAccess.Value)
+				rawValue := strings.ToLower(strings.Trim(publicAccess.RawValue, `"`))
+				if value == "true" || rawValue == "true" {
 					issues = append(issues, types.Issue{
 						Rule:        r.GetName(),
 						Message:     "Storage account has public network access enabled",
@@ -52,7 +54,9 @@ func (r *AzurePublicAccessRule) Check(config *parser.Config) []types.Issue {
 		// Check Azure Container Registry public access
 		if block.Type == "resource" && len(block.Labels) >= 2 && block.Labels[0] == "azurerm_container_registry" {
 			if publicAccess, exists := block.Attributes["public_network_access_enabled"]; exists {
-				if ctyValueToString(publicAccess.Value) == "true" {
+				value := ctyValueToString(publicAccess.Value)
+				rawValue := strings.ToLower(strings.Trim(publicAccess.RawValue, `"`))
+				if value == "true" || rawValue == "true" {
 					issues = append(issues, types.Issue{
 						Rule:        r.GetName(),
 						Message:     "Container registry has public network access enabled",
@@ -69,7 +73,9 @@ func (r *AzurePublicAccessRule) Check(config *parser.Config) []types.Issue {
 		   (block.Labels[0] == "azurerm_linux_web_app" || block.Labels[0] == "azurerm_windows_web_app") {
 			// Check if public access is not restricted
 			if publicAccess, exists := block.Attributes["public_network_access_enabled"]; exists {
-				if ctyValueToString(publicAccess.Value) == "true" {
+				value := ctyValueToString(publicAccess.Value)
+				rawValue := strings.ToLower(strings.Trim(publicAccess.RawValue, `"`))
+				if value == "true" || rawValue == "true" {
 					issues = append(issues, types.Issue{
 						Rule:        r.GetName(),
 						Message:     "Web app has public network access enabled",
@@ -110,7 +116,30 @@ func (r *AzureUnencryptedStorageRule) Check(config *parser.Config) []types.Issue
 	for _, block := range config.Blocks {
 		// Check Azure Storage Account encryption
 		if block.Type == "resource" && len(block.Labels) >= 2 && block.Labels[0] == "azurerm_storage_account" {
-			if _, exists := block.Attributes["encryption"]; !exists || ctyValueToString(block.Attributes["encryption"].Value) == "false" {
+			// Check if encryption block exists (nested block)
+			hasEncryptionBlock := false
+			for _, nestedBlock := range block.Blocks {
+				if nestedBlock.Type == "encryption" {
+					hasEncryptionBlock = true
+					break
+				}
+			}
+			
+			// Check if encryption attribute exists
+			if encryptionAttr, exists := block.Attributes["encryption"]; exists {
+				value := ctyValueToString(encryptionAttr.Value)
+				rawValue := strings.ToLower(strings.Trim(encryptionAttr.RawValue, `"`))
+				if value == "false" || rawValue == "false" {
+					issues = append(issues, types.Issue{
+						Rule:        r.GetName(),
+						Message:     "Storage account encryption disabled",
+						Description: "Azure storage accounts should be encrypted by default",
+						Severity:    r.GetSeverity(),
+						Line:        encryptionAttr.Range.Start.Line,
+					})
+				}
+			} else if !hasEncryptionBlock {
+				// Only report if neither encryption attribute nor encryption block exists
 				issues = append(issues, types.Issue{
 					Rule:        r.GetName(),
 					Message:     "Storage account encryption not specified",
