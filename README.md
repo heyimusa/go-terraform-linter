@@ -6,7 +6,7 @@ A fast and comprehensive **multi-cloud security-focused** Terraform linter writt
 
 - **🌐 Multi-Cloud Security**: Comprehensive rules for Azure, AWS, and general cloud resources
 - **🔒 Advanced Secret Detection**: Detects hardcoded credentials, API keys, database connection strings, and OAuth secrets
-- **⚡ Fast Parallel Processing**: Concurrent file analysis for maximum performance
+- **⚡ Fast Parallel Processing**: Concurrent file analysis with intelligent caching for maximum performance
 - **📊 Multiple Output Formats**: Text, JSON, SARIF, and HTML reports for CI/CD integration
 - **🎯 40+ Security Rules**: Covering network security, IAM, compliance, cost optimization, and more
 - **🔧 Highly Configurable**: Custom rules, severity overrides, and exclude patterns via YAML/JSON
@@ -14,6 +14,10 @@ A fast and comprehensive **multi-cloud security-focused** Terraform linter writt
 - **🚀 Production Ready**: Successfully detects real-world security vulnerabilities
 - **📝 Actionable Reports**: Fix suggestions and detailed descriptions for each issue
 - **🔄 CI/CD Ready**: SARIF output format for GitHub Security tab integration
+- **🧪 Comprehensive Testing**: Full test suite with unit and integration tests
+- **💾 Smart Caching**: File-based caching for faster subsequent scans
+- **📋 Structured Logging**: Detailed logging with performance tracking
+- **✅ Rule Validation**: Confidence scoring and false positive reduction
 
 ## Supported Cloud Providers 🌩️
 
@@ -128,6 +132,12 @@ go install github.com/heyimusa/go-terraform-linter/cmd/linter@latest
 
 # Output to file
 ./tflint -o security-report.json -f json /path/to/terraform/config
+
+# Clear cache for fresh scan
+./tflint --clear-cache /path/to/terraform/config
+
+# Enable detailed logging
+./tflint --log-level debug /path/to/terraform/config
 ```
 
 ### Configuration File Example
@@ -146,6 +156,18 @@ severity:
   MISSING_TAGS: "low"
   COST_OPTIMIZATION: "medium"
   AWS_EXPOSED_SECRETS: "critical"
+
+# Performance settings
+performance:
+  max_workers: 10
+  enable_cache: true
+  cache_dir: ".tflint-cache"
+
+# Logging configuration
+logging:
+  level: "info"
+  file: "tflint.log"
+  enable_performance_tracking: true
 
 # Custom rules (YAML-based)
 custom_rules:
@@ -170,6 +192,9 @@ $ ./tflint ../production/terraform/
    Critical: 7
    High: 1
    Low: 4
+   Scan Duration: 2.3s
+   Files Processed: 45
+   Cache Hit Rate: 78%
 
 🔍 Detailed Issues:
 --------------------------------------------------------------------------------
@@ -178,18 +203,22 @@ $ ./tflint ../production/terraform/
   🚨 [CRITICAL] Hardcoded Azure provider credential: client_secret (line 5)
      Rule: AZURE_EXPOSED_SECRETS
      Description: Azure provider credentials should be stored in variables or environment.
+     Confidence: 95%
 
   🚨 [CRITICAL] Hardcoded APP_KEY detected (line 23)
      Rule: AZURE_EXPOSED_SECRETS  
      Description: APP_KEY should not be hardcoded. Use Azure Key Vault or environment variables.
+     Confidence: 92%
 
   🚨 [CRITICAL] Hardcoded database connection string with credentials (line 28)
      Rule: AZURE_EXPOSED_SECRETS
      Description: Database connection strings should not contain hardcoded credentials.
+     Confidence: 88%
 
   ⚠️ [HIGH] Debug mode enabled in production (line 31)
      Rule: AZURE_WEAK_AUTHENTICATION
      Description: APP_DEBUG should be false in production environments.
+     Confidence: 85%
 
 ================================================================================
 ❌ Critical and High severity issues found!
@@ -208,9 +237,10 @@ go-terraform-linter/
 │       └── main.go              # CLI entry point
 ├── internal/
 │   ├── linter/
-│   │   └── linter.go           # Core linting engine
+│   │   └── linter.go           # Core linting engine with caching & validation
 │   ├── parser/
-│   │   └── parser.go           # Terraform HCL parser with RawValue support
+│   │   ├── parser.go           # Terraform HCL parser with RawValue support
+│   │   └── tests/              # Parser unit tests
 │   ├── report/
 │   │   ├── formats/            # Output format handlers
 │   │   └── report.go           # Report generation
@@ -224,9 +254,16 @@ go-terraform-linter/
 │   │   │   ├── best_practices.go # General security practices
 │   │   │   ├── cost.go         # Cost optimization rules
 │   │   │   ├── network.go      # Network security rules
-│   │   │   └── storage.go      # Storage & encryption rules
+│   │   │   ├── storage.go      # Storage & encryption rules
+│   │   │   └── tests/          # Rule unit tests
 │   │   ├── engine.go           # Rule execution engine
 │   │   └── interface.go        # Rule interface definitions
+│   ├── cache/
+│   │   └── cache.go            # File-based caching system
+│   ├── logger/
+│   │   └── logger.go           # Structured logging with performance tracking
+│   ├── validation/
+│   │   └── validator.go        # Rule validation and confidence scoring
 │   └── types/
 │       └── types.go            # Shared data structures with RawValue support
 ├── examples/
@@ -241,18 +278,74 @@ go-terraform-linter/
 - **RawValue Extraction**: Captures actual string values for secret detection
 - **Multi-format Support**: `.tf`, `.tfvars`, and `.tf.json` files
 - **Error Resilience**: Continues scanning even with parse errors
+- **Comprehensive Testing**: Full test suite for edge cases
 
 #### 2. **Multi-Cloud Rules Engine** (`internal/rules/`)
 - **Cloud-Specific Rules**: Separate modules for Azure, AWS, and general rules
 - **Pattern-Based Detection**: Advanced regex and string matching for secrets
 - **Configurable Severity**: Override rule severities via configuration
 - **Extensible Architecture**: Easy to add new cloud providers
+- **Unit Testing**: Comprehensive test coverage for all rules
 
-#### 3. **Advanced Secret Detection**
+#### 3. **Smart Caching System** (`internal/cache/`)
+- **File Hash Tracking**: SHA256-based change detection
+- **Incremental Scanning**: Only processes changed files
+- **Performance Optimization**: Dramatically faster subsequent scans
+- **Cache Statistics**: Detailed metrics and cleanup utilities
+
+#### 4. **Structured Logging** (`internal/logger/`)
+- **Multiple Log Levels**: DEBUG, INFO, WARN, ERROR, FATAL
+- **Performance Tracking**: Built-in timing and metrics
+- **File Output**: Optional log file writing
+- **Contextual Information**: Rich metadata for debugging
+
+#### 5. **Rule Validation Framework** (`internal/validation/`)
+- **Confidence Scoring**: Reduces false positives
+- **Context-Aware Validation**: Considers environment and compensating controls
+- **Whitelist/Blacklist Support**: Flexible rule filtering
+- **Custom Validation Rules**: Extensible validation logic
+
+#### 6. **Advanced Secret Detection**
 - **Hardcoded Credentials**: Azure/AWS provider credentials
 - **API Keys & Tokens**: JWT secrets, OAuth tokens, API keys
 - **Database Connections**: Connection strings with embedded credentials
 - **Application Secrets**: APP_KEY, client secrets, debug settings
+
+## Performance 📈
+
+- **Parallel Processing**: Scans multiple files concurrently
+- **Smart Caching**: File hash-based caching for unchanged files
+- **Memory Efficient**: Minimal memory footprint even for large codebases
+- **Fast Execution**: Typical scan times:
+  - Small project (10-20 files): < 1 second
+  - Medium project (50-100 files): 2-5 seconds
+  - Large project (200+ files): 5-15 seconds
+  - **With caching**: 80-90% faster on subsequent runs
+
+## Testing 🧪
+
+The project includes comprehensive testing infrastructure:
+
+```bash
+# Run all tests
+go test ./... -v
+
+# Run specific test suites
+go test ./internal/rules/security/tests/ -v
+go test ./internal/parser/tests/ -v
+
+# Run with coverage
+go test ./... -cover
+
+# Run performance benchmarks
+go test ./... -bench=.
+```
+
+### Test Coverage
+- **Unit Tests**: All security rules, parser functions, and utilities
+- **Integration Tests**: End-to-end scanning workflows
+- **Performance Tests**: Benchmarking for optimization
+- **Edge Case Testing**: Invalid inputs, error conditions
 
 ## CI/CD Integration 🔄
 
@@ -316,15 +409,6 @@ pipeline {
 }
 ```
 
-## Performance 📈
-
-- **Parallel Processing**: Scans multiple files concurrently
-- **Memory Efficient**: Minimal memory footprint even for large codebases
-- **Fast Execution**: Typical scan times:
-  - Small project (10-20 files): < 1 second
-  - Medium project (50-100 files): 2-5 seconds
-  - Large project (200+ files): 5-15 seconds
-
 ## Contributing 🤝
 
 We welcome contributions! Here's how to add new security rules:
@@ -335,6 +419,7 @@ We welcome contributions! Here's how to add new security rules:
 2. Create a new rule struct implementing the `Rule` interface
 3. Add pattern-based detection logic
 4. Register the rule in `internal/rules/engine.go`
+5. Add unit tests in `internal/rules/security/tests/`
 
 ### Adding AWS Rules
 
@@ -342,6 +427,7 @@ We welcome contributions! Here's how to add new security rules:
 2. Follow the same pattern as existing AWS rules
 3. Use `RawValue` field for secret detection
 4. Register in the engine
+5. Add comprehensive unit tests
 
 ### Example New Rule
 
@@ -371,6 +457,26 @@ func (r *AzureNewSecurityRule) Check(config *parser.Config) []types.Issue {
     
     return issues
 }
+```
+
+### Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/heyimusa/go-terraform-linter.git
+cd go-terraform-linter
+
+# Install dependencies
+go mod download
+
+# Run tests
+go test ./... -v
+
+# Build
+go build -o tflint cmd/linter/main.go
+
+# Test locally
+./tflint -v examples/
 ```
 
 ## License 📄

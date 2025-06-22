@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/heyimusa/go-terraform-linter/internal/parser"
 	"github.com/heyimusa/go-terraform-linter/internal/report"
@@ -13,12 +14,18 @@ import (
 	"github.com/heyimusa/go-terraform-linter/internal/rules/custom"
 	yaml "gopkg.in/yaml.v3"
 	"github.com/heyimusa/go-terraform-linter/internal/types"
+	"github.com/heyimusa/go-terraform-linter/internal/cache"
+	"github.com/heyimusa/go-terraform-linter/internal/logger"
+	"github.com/heyimusa/go-terraform-linter/internal/validation"
 )
 
 type Linter struct {
 	severity string
 	verbose  bool
 	parser   *parser.Parser
+	logger   *logger.Logger
+	cache    *cache.Cache
+	validator *validation.RuleValidator
 	rules    *rules.RuleEngine
 
 	// New fields for config/customization
@@ -31,10 +38,14 @@ type Linter struct {
 }
 
 func NewLinter() *Linter {
+	log := logger.NewLogger(logger.INFO, nil)
 	return &Linter{
 		severity: "all",
 		verbose:  false,
 		parser:   parser.NewParser(),
+		logger:   log,
+		cache:    cache.NewCache(".tflint-cache", true),
+		validator: validation.NewRuleValidator(),
 		rules:    rules.NewRuleEngine(),
 		excludePatterns: []string{},
 		configFile:      "",
@@ -65,6 +76,8 @@ func (l *Linter) SetVerbose(verbose bool) {
 
 func (l *Linter) Lint(configPath string) (*report.Report, error) {
 	report := report.NewReport()
+	l.logger.Info("Starting lint scan", map[string]interface{}{"path": configPath})
+	start := time.Now()
 	
 	// Validate path
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
@@ -97,11 +110,12 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 	// Find all Terraform files
 	tfFiles, err := l.findTerraformFiles(configPath)
 	if err != nil {
+		l.logger.Error("Failed to find Terraform files", map[string]interface{}{"error": err.Error()})
 		return nil, fmt.Errorf("failed to find Terraform files: %w", err)
 	}
 	
 	if l.verbose {
-		fmt.Printf("Found %d Terraform files to analyze\n", len(tfFiles))
+		l.logger.Debug(fmt.Sprintf("Found %d Terraform files to analyze", len(tfFiles)))
 	}
 
 	// Exclude files matching patterns
@@ -130,12 +144,29 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 	
 	for _, file := range tfFiles {
 		go func(file string) {
-			// --- Caching stub: check if file is unchanged, skip if so ---
-			// TODO: Implement caching based on file hash/timestamp
-			
+			// Caching: skip unchanged files
+			changed, err := l.cache.IsFileChanged(file)
+			if err != nil {
+				l.logger.Warn("Cache check failed", map[string]interface{}{"file": file, "error": err.Error()})
+			}
+			if !changed {
+				cachedIssues, ok := l.cache.GetCachedIssues(file)
+				if ok {
+					// Convert cached issues to types.Issue
+					var issues []types.Issue
+					for _, ci := range cachedIssues {
+						issues = append(issues, types.Issue{
+							Rule: ci.Rule, Message: ci.Message, Severity: ci.Severity, Line: ci.Line, Description: ci.Description,
+						})
+					}
+					results <- result{file, issues, nil}
+					return
+				}
+			}
 			// Parse the file
 			config, err := l.parser.ParseFile(file)
 			if err != nil {
+				l.logger.Error("Parse error", map[string]interface{}{"file": file, "error": err.Error()})
 				results <- result{file, nil, err}
 				return
 			}
@@ -146,7 +177,23 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 			for _, cr := range l.customRules {
 				issues = append(issues, cr.Check(config)...)
 			}
-			results <- result{file, issues, nil}
+			// Validate issues
+			var validated []types.Issue
+			var cached []cache.CachedIssue
+			for _, issue := range issues {
+				vres := l.validator.ValidateIssue(issue, config)
+				if vres.IsValid && vres.Confidence >= 0.5 {
+					validated = append(validated, issue)
+					cached = append(cached, cache.CachedIssue{
+						Rule: issue.Rule, Message: issue.Message, Severity: issue.Severity, Line: issue.Line, Description: issue.Description,
+					})
+				} else if l.verbose {
+					l.logger.Debug("Filtered low-confidence issue", map[string]interface{}{"rule": issue.Rule, "file": file, "reason": vres.Reason})
+				}
+			}
+			// Store in cache
+			_ = l.cache.StoreFileResult(file, cached)
+			results <- result{file, validated, nil}
 		}(file)
 	}
 	
@@ -164,6 +211,7 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 		}
 	}
 	if parseErrors > 0 {
+		l.logger.Warn("Some files could not be parsed", map[string]interface{}{"count": parseErrors})
 		fmt.Fprintf(os.Stderr, "Warning: %d file(s) could not be parsed. Partial results shown.\n", parseErrors)
 	}
 	
@@ -174,9 +222,7 @@ func (l *Linter) Lint(configPath string) (*report.Report, error) {
 		}
 	}
 	
-	// --- Incremental scan stub: only scan changed files ---
-	// TODO: Implement incremental scanning for large codebases
-	
+	l.logger.Info("Scan complete", map[string]interface{}{"duration": time.Since(start).String(), "issues": len(report.Issues)})
 	return report, nil
 }
 
