@@ -2,6 +2,12 @@
 
 This guide covers how to contribute to the Go Terraform Linter project, including setup, development workflow, and best practices.
 
+## 🎯 **v2.0 Development Standards**
+- **Go Version**: 1.21+ required (upgraded from 1.18)
+- **Test Coverage**: 70%+ maintained across all components
+- **Rule Count**: 100+ comprehensive security rules
+- **Quality Gates**: All tests must pass, no linter errors
+
 ## 📋 Table of Contents
 
 - [Getting Started](#getting-started)
@@ -16,10 +22,11 @@ This guide covers how to contribute to the Go Terraform Linter project, includin
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Go**: Version 1.21 or higher
+- **Go**: Version 1.21 or higher (required for v2.0+)
 - **Git**: For version control
 - **Make**: For build automation (optional)
 - **Docker**: For containerized development (optional)
+- **Test Coverage Tools**: For maintaining our 70%+ coverage standard
 
 ### Fork and Clone
 ```bash

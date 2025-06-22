@@ -36,12 +36,12 @@ New to the Go Terraform Linter? Start here:
   - Performance tuning
 
 ### 📋 Rules and Security
-- **[Rules Documentation](RULES.md)** - Complete rules reference
-  - AWS rules (45+ rules across 12 services)
-  - Azure rules (25+ rules across 8 services)
-  - GCP rules (20+ rules across 6 services)
-  - Kubernetes rules (15+ rules)
-  - Generic rules and custom rule creation
+- **[Rules Documentation](RULES.md)** - Complete rules reference (100+ rules)
+  - AWS rules (30+ comprehensive security rules)
+  - Azure rules (25+ comprehensive security rules)
+  - GCP rules (25+ comprehensive security rules)
+  - Kubernetes rules (20+ comprehensive security rules)
+  - Generic rules (15+ cross-platform rules) and custom rule creation
 
 ### 🛠️ Development and Integration
 - **[Development Guide](DEVELOPMENT.md)** - For contributors and developers
@@ -157,10 +157,10 @@ docker run --rm -v $(pwd):/workspace \
 | Feature | Status | Documentation |
 |---------|--------|---------------|
 | **Multi-Cloud Support** | ✅ | [Rules Documentation](RULES.md) |
-| AWS (45+ rules) | ✅ | [AWS Rules](RULES.md#aws-rules) |
+| AWS (30+ rules) | ✅ | [AWS Rules](RULES.md#aws-rules) |
 | Azure (25+ rules) | ✅ | [Azure Rules](RULES.md#azure-rules) |
-| GCP (20+ rules) | ✅ | [GCP Rules](RULES.md#gcp-rules) |
-| Kubernetes (15+ rules) | ✅ | [Kubernetes Rules](RULES.md#kubernetes-rules) |
+| GCP (25+ rules) | ✅ | [GCP Rules](RULES.md#gcp-rules) |
+| Kubernetes (20+ rules) | ✅ | [Kubernetes Rules](RULES.md#kubernetes-rules) |
 | **Output Formats** | ✅ | [Usage Guide](USAGE.md#output-formats) |
 | Text | ✅ | [Usage Guide](USAGE.md#text-format-default) |
 | JSON | ✅ | [Usage Guide](USAGE.md#json-format) |
