@@ -67,7 +67,7 @@ jobs:
             ./cmd/linter
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-linter-${{ matrix.suffix }}
           path: terraform-linter-${{ matrix.suffix }}${{ matrix.extension }}
@@ -131,7 +131,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
 
       - name: Get version
         id: get_version
@@ -270,7 +272,7 @@ jobs:
           EOF
 
       - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packages
           path: packages/
@@ -286,7 +288,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
 
       - name: Get version
         id: get_version
