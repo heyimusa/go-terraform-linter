@@ -17,6 +17,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          
+      - name: Set Version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          elif [ -n "${{ github.ref_name }}" ]; then
+            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=v1.0.0" >> $GITHUB_ENV
+          fi
+          echo "Using version: $VERSION"
       
       - name: Update Homebrew Tap
         uses: mislav/bump-homebrew-formula-action@v3
@@ -25,13 +36,14 @@ jobs:
           formula-path: Formula/terraform-linter.rb
           homebrew-tap: heyimusa/homebrew-terraform-linter
           base-branch: main
-          download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ github.event.inputs.version || github.ref_name }}/terraform-linter-darwin-amd64
+          create-pullrequest: true
+          download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ env.VERSION }}/terraform-linter-darwin-amd64
           commit-message: |
-            terraform-linter ${{ github.event.inputs.version || github.ref_name }}
+            terraform-linter ${{ env.VERSION }}
             
             Automatically updated by GitHub Actions
         env:
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
 
   publish-snap:
     runs-on: ubuntu-latest
@@ -63,8 +75,22 @@ jobs:
           [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
           iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
       
+      - name: Set Version
+        run: |
+          if ("${{ github.event.inputs.version }}" -ne "") {
+            $env:VERSION = "${{ github.event.inputs.version }}"
+          } elseif ("${{ github.ref_name }}" -ne "") {
+            $env:VERSION = "${{ github.ref_name }}"
+          } else {
+            $env:VERSION = "1.0.0"
+          }
+          echo "VERSION=$env:VERSION" >> $env:GITHUB_ENV
+          echo "Using version: $env:VERSION"
+      
       - name: Generate Package
         run: make chocolatey
+        env:
+          VERSION: ${{ env.VERSION }}
       
       - name: Build Chocolatey Package
         run: |
