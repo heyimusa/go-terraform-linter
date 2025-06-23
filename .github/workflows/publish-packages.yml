@@ -23,9 +23,9 @@ jobs:
           formula-path: Formula/terraform-linter.rb
           homebrew-tap: heyimusa/homebrew-terraform-linter
           base-branch: main
-          download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ github.ref_name }}/terraform-linter-darwin-amd64
+          download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ github.event.inputs.version || github.ref_name }}/terraform-linter-darwin-amd64
           commit-message: |
-            terraform-linter ${{ github.ref_name }}
+            terraform-linter ${{ github.event.inputs.version || github.ref_name }}
             
             Automatically updated by GitHub Actions
         env:
