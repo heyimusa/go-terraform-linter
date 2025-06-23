@@ -41,4 +41,4 @@ parts:
     override-build: |
       craftctl default
       # Build the binary
-      go build -o $CRAFTCTL_PART_INSTALL/bin/terraform-linter ./cmd/linter 
+      go build -o ${CRAFT_PART_INSTALL}/bin/terraform-linter ./cmd/linter 

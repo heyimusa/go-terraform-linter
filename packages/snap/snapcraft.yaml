@@ -1,0 +1,22 @@
+name: terraform-linter
+version: "1.0.0"
+summary: A security-focused Terraform linter
+description: |
+  A fast and comprehensive Terraform linter that focuses on security best practices,
+  resource misconfigurations, and infrastructure vulnerabilities.
+
+grade: stable
+confinement: strict
+base: core22
+
+apps:
+  terraform-linter:
+    command: bin/terraform-linter
+    plugs: [home, removable-media]
+
+parts:
+  terraform-linter:
+    plugin: dump
+    source: dist/
+    organize:
+      terraform-linter-linux-amd64: bin/terraform-linter

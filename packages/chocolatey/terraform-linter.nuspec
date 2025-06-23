@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>terraform-linter</id>
+    <version>1.0.0</version>
+    <packageSourceUrl>https://github.com/heyimusa/go-terraform-linter</packageSourceUrl>
+    <owners>heyimusa</owners>
+    <title>Terraform Linter</title>
+    <authors>heyimusa</authors>
+    <projectUrl>https://github.com/heyimusa/go-terraform-linter</projectUrl>
+    <summary>A security-focused Terraform linter</summary>
+    <description>A fast and comprehensive Terraform linter that focuses on security best practices, resource misconfigurations, and infrastructure vulnerabilities.</description>
+    <tags>terraform security linter infrastructure devops</tags>
+  </metadata>
+</package>
