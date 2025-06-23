@@ -138,7 +138,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-            echo "VERSION_NO_V=${{ github.event.inputs.version #v* }}" >> $GITHUB_OUTPUT
+            VERSION_NO_V=$(echo "${{ github.event.inputs.version }}" | sed 's/^v//')
+            echo "VERSION_NO_V=$VERSION_NO_V" >> $GITHUB_OUTPUT
           else
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
             echo "VERSION_NO_V=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
