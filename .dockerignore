@@ -1,0 +1,37 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+*_test.go
+test*
+coverage.out
+
+# Build artifacts
+bin/
+tflint
+go-terraform-linter
+
+# IDE files
+.vscode/
+.idea/
+
+# Cache directories
+.tflint-cache/
+
+# Examples and templates
+examples/
+templates/
+
+# CI/CD
+.github/
+
+# Other
+*.json
+*.yaml
+!go.mod
+!go.sum 

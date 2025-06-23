@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  terraform-linter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./examples:/workspace:ro
+      - ./output:/output
+    command: ["/workspace", "--format", "json", "--output", "/output/report.json"]
+    environment:
+      - TF_LINTER_VERBOSE=true
+
+  # Development service with source code mounted
+  terraform-linter-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - ./examples:/workspace:ro
+    working_dir: /app
+    command: ["go", "run", "./cmd/linter", "/workspace", "--verbose"]
+    environment:
+      - CGO_ENABLED=0
+
+  # Test runner service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["go", "test", "./...", "-v"]
+    environment:
+      - CGO_ENABLED=0 

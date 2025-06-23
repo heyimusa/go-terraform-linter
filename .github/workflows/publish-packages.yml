@@ -1,0 +1,70 @@
+name: Publish Packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., v1.0.0)'
+        required: true
+
+jobs:
+  publish-homebrew:
+    runs-on: ubuntu-latest
+    if: github.repository == 'heyimusa/go-terraform-linter'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update Homebrew Tap
+        uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: terraform-linter
+          formula-path: Formula/terraform-linter.rb
+          homebrew-tap: heyimusa/homebrew-terraform-linter
+          base-branch: main
+          download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ github.ref_name }}/terraform-linter-darwin-amd64
+          commit-message: |
+            terraform-linter ${{ github.ref_name }}
+            
+            Automatically updated by GitHub Actions
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+  publish-snap:
+    runs-on: ubuntu-latest
+    if: github.repository == 'heyimusa/go-terraform-linter'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Snap
+        uses: snapcore/action-build@v1
+        id: build
+      
+      - name: Upload to Snap Store
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: stable
+
+  publish-chocolatey:
+    runs-on: windows-latest
+    if: github.repository == 'heyimusa/go-terraform-linter'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Chocolatey
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+      
+      - name: Generate Package
+        run: make chocolatey
+      
+      - name: Publish to Chocolatey
+        run: |
+          choco apikey --key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
+          choco push packages/chocolatey/terraform-linter.nupkg --source https://push.chocolatey.org/ 

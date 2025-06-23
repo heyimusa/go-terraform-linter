@@ -1,0 +1,171 @@
+.PHONY: build test clean docker docker-dev docker-push homebrew snap chocolatey packages release help
+
+# Variables
+BINARY_NAME=terraform-linter
+VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+COMMIT_HASH=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME=$(shell date +%Y-%m-%dT%H:%M:%S%z)
+LDFLAGS=-ldflags="-s -w -X main.version=$(VERSION) -X main.commitHash=$(COMMIT_HASH) -X main.buildTime=$(BUILD_TIME)"
+
+# Docker settings
+DOCKER_REGISTRY ?= ghcr.io
+DOCKER_REPO ?= heyimusa/go-terraform-linter
+DOCKER_TAG ?= $(VERSION)
+
+# Build targets
+build: ## Build the binary
+	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/linter
+
+build-all: ## Build binaries for all platforms
+	@mkdir -p dist
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-amd64 ./cmd/linter
+	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-arm64 ./cmd/linter
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-amd64 ./cmd/linter
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-arm64 ./cmd/linter
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/linter
+
+# Test targets
+test: ## Run tests
+	go test ./...
+
+test-verbose: ## Run tests with verbose output
+	go test -v ./...
+
+test-coverage: ## Run tests with coverage
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+
+# Docker targets
+docker: ## Build Docker image
+	docker build -t $(DOCKER_REPO):$(DOCKER_TAG) .
+	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):latest
+
+docker-dev: ## Build development Docker image
+	docker build -f Dockerfile.dev -t $(DOCKER_REPO):dev .
+
+docker-push: docker ## Build and push Docker image
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_REPO):$(DOCKER_TAG)
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_REPO):latest
+
+docker-run: ## Run Docker container on current directory
+	docker run --rm -v $(PWD):/workspace $(DOCKER_REPO):latest /workspace
+
+docker-compose-up: ## Start services with docker-compose
+	docker-compose up --build
+
+docker-compose-test: ## Run tests in docker-compose
+	docker-compose run --rm test-runner
+
+# Package managers
+homebrew: build-all ## Create Homebrew formula
+	@mkdir -p packages/homebrew
+	@echo "Creating Homebrew formula..."
+	@echo 'class TerraformLinter < Formula' > packages/homebrew/terraform-linter.rb
+	@echo '  desc "A security-focused Terraform linter"' >> packages/homebrew/terraform-linter.rb
+	@echo '  homepage "https://github.com/heyimusa/go-terraform-linter"' >> packages/homebrew/terraform-linter.rb
+	@echo '  version "$(VERSION)"' >> packages/homebrew/terraform-linter.rb
+	@echo '  url "https://github.com/heyimusa/go-terraform-linter/releases/download/$(VERSION)/terraform-linter-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz"' >> packages/homebrew/terraform-linter.rb
+	@echo '  def install' >> packages/homebrew/terraform-linter.rb
+	@echo '    bin.install "terraform-linter"' >> packages/homebrew/terraform-linter.rb
+	@echo '  end' >> packages/homebrew/terraform-linter.rb
+	@echo '  test do' >> packages/homebrew/terraform-linter.rb
+	@echo '    assert_match version.to_s, shell_output("#{bin}/terraform-linter --version")' >> packages/homebrew/terraform-linter.rb
+	@echo '  end' >> packages/homebrew/terraform-linter.rb
+	@echo 'end' >> packages/homebrew/terraform-linter.rb
+	@echo "Homebrew formula created at packages/homebrew/terraform-linter.rb"
+
+snap: build-all ## Create Snap package
+	@mkdir -p packages/snap
+	@echo "Creating Snap package..."
+	@echo 'name: terraform-linter' > packages/snap/snapcraft.yaml
+	@echo 'version: "$(VERSION:v%=%)"' >> packages/snap/snapcraft.yaml
+	@echo 'summary: A security-focused Terraform linter' >> packages/snap/snapcraft.yaml
+	@echo 'description: |' >> packages/snap/snapcraft.yaml
+	@echo '  A fast and comprehensive Terraform linter that focuses on security best practices,' >> packages/snap/snapcraft.yaml
+	@echo '  resource misconfigurations, and infrastructure vulnerabilities.' >> packages/snap/snapcraft.yaml
+	@echo '' >> packages/snap/snapcraft.yaml
+	@echo 'grade: stable' >> packages/snap/snapcraft.yaml
+	@echo 'confinement: strict' >> packages/snap/snapcraft.yaml
+	@echo 'base: core22' >> packages/snap/snapcraft.yaml
+	@echo '' >> packages/snap/snapcraft.yaml
+	@echo 'apps:' >> packages/snap/snapcraft.yaml
+	@echo '  terraform-linter:' >> packages/snap/snapcraft.yaml
+	@echo '    command: bin/terraform-linter' >> packages/snap/snapcraft.yaml
+	@echo '    plugs: [home, removable-media]' >> packages/snap/snapcraft.yaml
+	@echo '' >> packages/snap/snapcraft.yaml
+	@echo 'parts:' >> packages/snap/snapcraft.yaml
+	@echo '  terraform-linter:' >> packages/snap/snapcraft.yaml
+	@echo '    plugin: dump' >> packages/snap/snapcraft.yaml
+	@echo '    source: dist/' >> packages/snap/snapcraft.yaml
+	@echo '    organize:' >> packages/snap/snapcraft.yaml
+	@echo '      terraform-linter-linux-amd64: bin/terraform-linter' >> packages/snap/snapcraft.yaml
+	@echo "Snap package config created at packages/snap/snapcraft.yaml"
+
+chocolatey: build-all ## Create Chocolatey package
+	@mkdir -p packages/chocolatey/tools
+	@echo "Creating Chocolatey package..."
+	@echo '<?xml version="1.0" encoding="utf-8"?>' > packages/chocolatey/terraform-linter.nuspec
+	@echo '<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '  <metadata>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <id>terraform-linter</id>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <version>$(VERSION:v%=%)</version>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <packageSourceUrl>https://github.com/heyimusa/go-terraform-linter</packageSourceUrl>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <owners>heyimusa</owners>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <title>Terraform Linter</title>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <authors>heyimusa</authors>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <projectUrl>https://github.com/heyimusa/go-terraform-linter</projectUrl>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <summary>A security-focused Terraform linter</summary>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <description>A fast and comprehensive Terraform linter that focuses on security best practices, resource misconfigurations, and infrastructure vulnerabilities.</description>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <tags>terraform security linter infrastructure devops</tags>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '  </metadata>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '</package>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo 'Creating PowerShell install script...'
+	@echo 'Write-Host "Installing Terraform Linter..."' > packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo "Chocolatey package created at packages/chocolatey/"
+
+packages: homebrew snap chocolatey ## Create all package manager configs
+
+# Release targets
+checksums: build-all ## Generate checksums for all binaries
+	@cd dist && sha256sum * > ../checksums.txt
+	@echo "Checksums generated in checksums.txt"
+
+release: clean build-all packages checksums ## Prepare a complete release
+	@echo "Release $(VERSION) prepared!"
+	@echo "Binaries in dist/"
+	@echo "Package configs in packages/"
+	@echo "Checksums in checksums.txt"
+
+# Utility targets
+install: build ## Install binary to /usr/local/bin
+	sudo cp $(BINARY_NAME) /usr/local/bin/
+
+uninstall: ## Remove binary from /usr/local/bin
+	sudo rm -f /usr/local/bin/$(BINARY_NAME)
+
+clean: ## Clean build artifacts
+	rm -f $(BINARY_NAME)
+	rm -rf dist/
+	rm -rf packages/
+	rm -f checksums.txt coverage.out coverage.html
+
+fmt: ## Format code
+	go fmt ./...
+
+lint: ## Run linters
+	golangci-lint run
+
+deps: ## Download dependencies
+	go mod download
+	go mod tidy
+
+dev-setup: ## Set up development environment
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/cosmtrek/air@latest
+
+help: ## Show this help message
+	@echo 'Usage:'
+	@echo '  make <target>'
+	@echo ''
+	@echo 'Targets:'
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) 

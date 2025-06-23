@@ -124,58 +124,158 @@ go install github.com/heyimusa/go-terraform-linter/cmd/linter@v1.0.0
 
 #### Pull and Run
 ```bash
-# Pull the image
+# Pull the latest image
 docker pull ghcr.io/heyimusa/go-terraform-linter:latest
 
 # Run on current directory
 docker run --rm -v $(pwd):/workspace ghcr.io/heyimusa/go-terraform-linter:latest /workspace
 
+# Run with specific output format
+docker run --rm -v $(pwd):/workspace -v $(pwd)/output:/output \
+  ghcr.io/heyimusa/go-terraform-linter:latest \
+  /workspace --format json --output /output/report.json
+
 # Create an alias for easy use
 echo 'alias terraform-linter="docker run --rm -v \$(pwd):/workspace ghcr.io/heyimusa/go-terraform-linter:latest"' >> ~/.bashrc
 source ~/.bashrc
+
+# Test the alias
+terraform-linter /workspace --help
 ```
 
 #### Build Your Own Image
 ```bash
+# Clone the repository
 git clone https://github.com/heyimusa/go-terraform-linter.git
 cd go-terraform-linter
 
-# Build the image
+# Build the production image
 docker build -t terraform-linter .
 
-# Run it
-docker run --rm -v $(pwd):/workspace terraform-linter /workspace
+# Or build the development image
+docker build -f Dockerfile.dev -t terraform-linter:dev .
+
+# Run the production image
+docker run --rm -v $(pwd)/examples:/workspace terraform-linter /workspace
+
+# Run with docker-compose (includes examples)
+docker-compose up terraform-linter
+```
+
+#### Using Docker Compose
+```bash
+# Clone and run with docker-compose
+git clone https://github.com/heyimusa/go-terraform-linter.git
+cd go-terraform-linter
+
+# Run linter on examples
+docker-compose up terraform-linter
+
+# Run in development mode
+docker-compose up terraform-linter-dev
+
+# Run tests
+docker-compose up test-runner
+```
+
+#### Using Makefile (Recommended for Development)
+```bash
+# Build Docker image
+make docker
+
+# Run Docker image on current directory
+make docker-run
+
+# Push to registry (maintainers only)
+make docker-push
+
+# Run with docker-compose
+make docker-compose-up
 ```
 
 ### Method 5: Package Managers
 
 #### Homebrew (macOS/Linux)
 ```bash
-# Add tap (when available)
+# Method 1: Using Homebrew tap (recommended)
 brew tap heyimusa/terraform-linter
 brew install terraform-linter
 
-# Or install directly
+# Method 2: Install directly from URL
 brew install heyimusa/terraform-linter/terraform-linter
+
+# Method 3: Install from local formula (for development)
+# Download the formula from releases and install
+curl -L https://github.com/heyimusa/go-terraform-linter/releases/latest/download/terraform-linter.rb -o terraform-linter.rb
+brew install --formula terraform-linter.rb
+
+# Verify installation
+terraform-linter --version
+brew test terraform-linter
 ```
 
 #### Snap (Linux)
 ```bash
-# Install from Snap Store (when available)
+# Method 1: Install from Snap Store
 sudo snap install terraform-linter
 
-# Or install from local snap
-sudo snap install --dangerous terraform-linter_*.snap
+# Method 2: Install from GitHub releases
+# Download the .snap file from releases page
+curl -L https://github.com/heyimusa/go-terraform-linter/releases/latest/download/terraform-linter_linux_amd64.snap -o terraform-linter.snap
+sudo snap install --dangerous terraform-linter.snap
+
+# Method 3: Build and install locally
+git clone https://github.com/heyimusa/go-terraform-linter.git
+cd go-terraform-linter
+make snap
+sudo snap install --dangerous packages/snap/terraform-linter_*.snap
+
+# Verify installation
+terraform-linter --version
+snap info terraform-linter
 ```
 
 #### Chocolatey (Windows)
 ```powershell
-# Install from Chocolatey (when available)
+# Method 1: Install from Chocolatey community repository
 choco install terraform-linter
 
-# Or install from local package
+# Method 2: Install from GitHub releases
+# Download the .nupkg file from releases page
+$url = "https://github.com/heyimusa/go-terraform-linter/releases/latest/download/terraform-linter.nupkg"
+Invoke-WebRequest -Uri $url -OutFile "terraform-linter.nupkg"
 choco install terraform-linter.nupkg
+
+# Method 3: Build and install locally
+git clone https://github.com/heyimusa/go-terraform-linter.git
+cd go-terraform-linter
+# Requires chocolatey pack tools
+make chocolatey
+choco install packages/chocolatey/terraform-linter.nupkg
+
+# Verify installation
+terraform-linter --version
+choco list terraform-linter
 ```
+
+#### Package Creation (For Maintainers)
+```bash
+# Build all packages using Makefile
+make packages
+
+# Or build individually
+make homebrew  # Creates Homebrew formula
+make snap      # Creates Snap package config  
+make chocolatey # Creates Chocolatey package
+
+# Complete release process
+make release   # Builds binaries, packages, and checksums
+
+# Setup publishing to official repositories
+./scripts/setup-package-publishing.sh
+```
+
+**📝 For Package Publishing**: See the [Package Publishing Guide](PUBLISHING_PACKAGES.md) for detailed instructions on how to publish to official Homebrew, Snap, and Chocolatey repositories.
 
 ## ✅ Verification
 

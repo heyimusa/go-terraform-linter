@@ -1,0 +1,340 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-binaries:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+          - goos: darwin
+            goarch: amd64
+            suffix: darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            suffix: darwin-arm64
+          - goos: windows
+            goarch: amd64
+            suffix: windows-amd64
+            extension: .exe
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
+            -o terraform-linter-${{ matrix.suffix }}${{ matrix.extension }} \
+            ./cmd/linter
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-linter-${{ matrix.suffix }}
+          path: terraform-linter-${{ matrix.suffix }}${{ matrix.extension }}
+
+  build-docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.get_version.outputs.VERSION }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  create-packages:
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "VERSION_NO_V=${{ github.event.inputs.version #v* }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "VERSION_NO_V=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Homebrew formula
+        run: |
+          mkdir -p packages/homebrew
+          cat > packages/homebrew/terraform-linter.rb << 'EOF'
+          class TerraformLinter < Formula
+            desc "A security-focused Terraform linter"
+            homepage "https://github.com/heyimusa/go-terraform-linter"
+            version "${{ steps.get_version.outputs.VERSION_NO_V }}"
+            
+            if OS.mac?
+              if Hardware::CPU.arm?
+                url "https://github.com/heyimusa/go-terraform-linter/releases/download/${{ steps.get_version.outputs.VERSION }}/terraform-linter-darwin-arm64"
+                sha256 "REPLACE_WITH_SHA256_ARM64"
+              else
+                url "https://github.com/heyimusa/go-terraform-linter/releases/download/${{ steps.get_version.outputs.VERSION }}/terraform-linter-darwin-amd64"
+                sha256 "REPLACE_WITH_SHA256_AMD64"
+              end
+            end
+            
+            if OS.linux?
+              if Hardware::CPU.arm?
+                url "https://github.com/heyimusa/go-terraform-linter/releases/download/${{ steps.get_version.outputs.VERSION }}/terraform-linter-linux-arm64"
+                sha256 "REPLACE_WITH_SHA256_LINUX_ARM64"
+              else
+                url "https://github.com/heyimusa/go-terraform-linter/releases/download/${{ steps.get_version.outputs.VERSION }}/terraform-linter-linux-amd64"
+                sha256 "REPLACE_WITH_SHA256_LINUX_AMD64"
+              end
+            end
+            
+            def install
+              bin.install Dir["terraform-linter*"].first => "terraform-linter"
+            end
+            
+            test do
+              assert_match version.to_s, shell_output("#{bin}/terraform-linter --version")
+            end
+          end
+          EOF
+
+      - name: Create Snap package metadata
+        run: |
+          mkdir -p packages/snap
+          cat > packages/snap/snapcraft.yaml << 'EOF'
+          name: terraform-linter
+          version: '${{ steps.get_version.outputs.VERSION_NO_V }}'
+          summary: A security-focused Terraform linter
+          description: |
+            A fast and comprehensive Terraform linter that focuses on security best practices,
+            resource misconfigurations, and infrastructure vulnerabilities.
+          
+          grade: stable
+          confinement: strict
+          base: core22
+          
+          architectures:
+            - build-on: amd64
+            - build-on: arm64
+          
+          apps:
+            terraform-linter:
+              command: bin/terraform-linter
+              plugs:
+                - home
+                - removable-media
+          
+          parts:
+            terraform-linter:
+              plugin: dump
+              source: .
+              stage:
+                - terraform-linter-linux-*
+              organize:
+                terraform-linter-linux-amd64: bin/terraform-linter
+          EOF
+
+      - name: Create Chocolatey package
+        run: |
+          mkdir -p packages/chocolatey
+          cat > packages/chocolatey/terraform-linter.nuspec << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+            <metadata>
+              <id>terraform-linter</id>
+              <version>${{ steps.get_version.outputs.VERSION_NO_V }}</version>
+              <packageSourceUrl>https://github.com/heyimusa/go-terraform-linter</packageSourceUrl>
+              <owners>heyimusa</owners>
+              <title>Terraform Linter</title>
+              <authors>heyimusa</authors>
+              <projectUrl>https://github.com/heyimusa/go-terraform-linter</projectUrl>
+              <copyright>2024 heyimusa</copyright>
+              <licenseUrl>https://github.com/heyimusa/go-terraform-linter/blob/master/LICENSE</licenseUrl>
+              <requireLicenseAcceptance>false</requireLicenseAcceptance>
+              <projectSourceUrl>https://github.com/heyimusa/go-terraform-linter</projectSourceUrl>
+              <docsUrl>https://github.com/heyimusa/go-terraform-linter/blob/master/docs/README.md</docsUrl>
+              <bugTrackerUrl>https://github.com/heyimusa/go-terraform-linter/issues</bugTrackerUrl>
+              <tags>terraform security linter infrastructure devops</tags>
+              <summary>A security-focused Terraform linter</summary>
+              <description>A fast and comprehensive Terraform linter that focuses on security best practices, resource misconfigurations, and infrastructure vulnerabilities.</description>
+            </metadata>
+            <files>
+              <file src="tools\**" target="tools" />
+            </files>
+          </package>
+          EOF
+          
+          mkdir -p packages/chocolatey/tools
+          cat > packages/chocolatey/tools/chocolateyinstall.ps1 << 'EOF'
+          $ErrorActionPreference = 'Stop'
+          $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
+          $url64 = 'https://github.com/heyimusa/go-terraform-linter/releases/download/${{ steps.get_version.outputs.VERSION }}/terraform-linter-windows-amd64.exe'
+          
+          $packageArgs = @{
+            packageName   = $env:ChocolateyPackageName
+            unzipLocation = $toolsDir
+            url64bit      = $url64
+            softwareName  = 'terraform-linter*'
+            checksum64    = 'REPLACE_WITH_CHECKSUM'
+            checksumType64= 'sha256'
+            fileName      = 'terraform-linter.exe'
+          }
+          
+          Install-ChocolateyBinFile -Name "terraform-linter" -Path "$toolsDir\terraform-linter.exe"
+          EOF
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages
+          path: packages/
+
+  create-release:
+    needs: [build-binaries, build-docker, create-packages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate checksums
+        run: |
+          for file in terraform-linter-*/terraform-linter-*; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" >> checksums.txt
+            fi
+          done
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            terraform-linter-*/terraform-linter-*
+            packages/**/*
+            checksums.txt
+          body: |
+            ## What's Changed
+            
+            ### Installation Methods
+            
+            #### Binary Download
+            Download the appropriate binary for your platform from the assets below.
+            
+            #### Docker
+            ```bash
+            docker pull ghcr.io/heyimusa/go-terraform-linter:${{ steps.get_version.outputs.VERSION }}
+            ```
+            
+            #### Package Managers
+            - **Homebrew**: Formula available in packages/homebrew/
+            - **Snap**: Package available in packages/snap/
+            - **Chocolatey**: Package available in packages/chocolatey/
+            
+            ### Checksums
+            See `checksums.txt` for file verification.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
