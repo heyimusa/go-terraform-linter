@@ -303,12 +303,21 @@ jobs:
 
       - name: Generate checksums
         run: |
-          for file in terraform-linter-*/terraform-linter-*; do
-            if [ -f "$file" ]; then
+          echo "Listing downloaded files:"
+          ls -la
+          echo "Generating checksums for terraform-linter binaries:"
+          for file in terraform-linter-*; do
+            if [ -f "$file" ] && [ "$file" != "terraform-linter-*.snap" ]; then
+              echo "Processing: $file"
               sha256sum "$file" >> checksums.txt
             fi
           done
-          cat checksums.txt
+          if [ -f checksums.txt ]; then
+            echo "Generated checksums:"
+            cat checksums.txt
+          else
+            echo "No checksums generated"
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -318,7 +327,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            terraform-linter-*/terraform-linter-*
+            terraform-linter-*
             packages/**/*
             checksums.txt
           body: |
