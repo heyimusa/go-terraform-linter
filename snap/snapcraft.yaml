@@ -1,0 +1,44 @@
+name: terraform-linter
+base: core22
+version: git
+summary: Advanced Terraform linting tool for security and best practices
+description: |
+  A comprehensive Terraform linter that helps enforce security best practices,
+  cost optimization, and compliance across your infrastructure as code.
+  
+  Features:
+  - Security vulnerability detection
+  - Cost optimization recommendations
+  - Compliance checking (AWS, Azure, GCP)
+  - Custom rule support
+  - CI/CD integration
+
+grade: stable
+confinement: strict
+
+architectures:
+  - build-on: amd64
+
+apps:
+  terraform-linter:
+    command: bin/terraform-linter
+    plugs:
+      - home
+      - network
+      - network-bind
+
+parts:
+  terraform-linter:
+    plugin: go
+    source: .
+    source-type: git
+    build-snaps:
+      - go/latest/stable
+    build-environment:
+      - CGO_ENABLED: "0"
+      - GOOS: linux
+      - GOARCH: amd64
+    override-build: |
+      craftctl default
+      # Build the binary
+      go build -o $CRAFTCTL_PART_INSTALL/bin/terraform-linter ./cmd/linter 
