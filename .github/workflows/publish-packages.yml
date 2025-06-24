@@ -15,8 +15,6 @@ jobs:
     if: github.repository == 'heyimusa/go-terraform-linter'
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           
       - name: Set Version
         run: |
@@ -36,14 +34,14 @@ jobs:
           formula-path: Formula/terraform-linter.rb
           homebrew-tap: heyimusa/homebrew-terraform-linter
           base-branch: main
-          create-pullrequest: true
+          create-pullrequest: false
           download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ env.VERSION }}/terraform-linter-darwin-amd64
           commit-message: |
             terraform-linter ${{ env.VERSION }}
             
             Automatically updated by GitHub Actions
         env:
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
   publish-snap:
     runs-on: ubuntu-latest
@@ -100,4 +98,10 @@ jobs:
       - name: Publish to Chocolatey
         run: |
           choco apikey --key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
-          choco push packages/chocolatey/terraform-linter.*.nupkg --source https://push.chocolatey.org/ 
+          $nupkg = Get-ChildItem packages/chocolatey/*.nupkg | Select-Object -First 1
+          if ($nupkg) {
+            choco push $nupkg.FullName --source https://push.chocolatey.org/
+          } else {
+            Write-Error "No .nupkg file found in packages/chocolatey/"
+            exit 1
+          } 

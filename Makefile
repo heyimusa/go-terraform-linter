@@ -118,9 +118,23 @@ chocolatey: build-all ## Create Chocolatey package
 	@echo '    <description>A fast and comprehensive Terraform linter that focuses on security best practices, resource misconfigurations, and infrastructure vulnerabilities.</description>' >> packages/chocolatey/terraform-linter.nuspec
 	@echo '    <tags>terraform security linter infrastructure devops</tags>' >> packages/chocolatey/terraform-linter.nuspec
 	@echo '  </metadata>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '  <files>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '    <file src="tools/**" target="tools" />' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '  </files>' >> packages/chocolatey/terraform-linter.nuspec
 	@echo '</package>' >> packages/chocolatey/terraform-linter.nuspec
 	@echo 'Creating PowerShell install script...'
-	@echo 'Write-Host "Installing Terraform Linter..."' > packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '$$packageName = "terraform-linter"' > packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '$$url64 = "https://github.com/heyimusa/go-terraform-linter/releases/download/$(VERSION)/terraform-linter-windows-amd64.exe"' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '$$packageArgs = @{' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '  packageName   = $$packageName' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '  url64bit      = $$url64' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '  fileType      = "exe"' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '  silentArgs    = "/S"' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '}' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo 'Install-ChocolateyPackage @packageArgs' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@cp dist/terraform-linter-windows-amd64.exe packages/chocolatey/tools/terraform-linter.exe
 	@echo "Chocolatey package created at packages/chocolatey/"
 
 packages: homebrew snap chocolatey ## Create all package manager configs
