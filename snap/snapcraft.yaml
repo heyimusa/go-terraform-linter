@@ -1,4 +1,4 @@
-name: terraform-linter
+name: go-terraform-linter
 base: core22
 version: git
 summary: Advanced Terraform linting tool for security and best practices
@@ -20,15 +20,15 @@ architectures:
   - build-on: amd64
 
 apps:
-  terraform-linter:
-    command: bin/terraform-linter
+  go-terraform-linter:
+    command: bin/go-terraform-linter
     plugs:
       - home
       - network
       - network-bind
 
 parts:
-  terraform-linter:
+  go-terraform-linter:
     plugin: go
     source: .
     source-type: git
@@ -41,4 +41,4 @@ parts:
     override-build: |
       craftctl default
       # Build the binary
-      go build -o ${CRAFT_PART_INSTALL}/bin/terraform-linter ./cmd/linter 
+      go build -o ${CRAFT_PART_INSTALL}/bin/go-terraform-linter ./cmd/linter 

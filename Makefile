@@ -1,7 +1,7 @@
 .PHONY: build test clean docker docker-dev docker-push homebrew snap chocolatey packages release help
 
 # Variables
-BINARY_NAME=terraform-linter
+BINARY_NAME=go-terraform-linter
 VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "0.0.1")
 COMMIT_HASH=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME=$(shell date +%Y-%m-%dT%H:%M:%S%z)
@@ -60,24 +60,24 @@ docker-compose-test: ## Run tests in docker-compose
 homebrew: build-all ## Create Homebrew formula
 	@mkdir -p packages/homebrew
 	@echo "Creating Homebrew formula..."
-	@echo 'class TerraformLinter < Formula' > packages/homebrew/terraform-linter.rb
-	@echo '  desc "A security-focused Terraform linter"' >> packages/homebrew/terraform-linter.rb
-	@echo '  homepage "https://github.com/heyimusa/go-terraform-linter"' >> packages/homebrew/terraform-linter.rb
-	@echo '  version "$(VERSION)"' >> packages/homebrew/terraform-linter.rb
-	@echo '  url "https://github.com/heyimusa/go-terraform-linter/releases/download/$(VERSION)/terraform-linter-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz"' >> packages/homebrew/terraform-linter.rb
-	@echo '  def install' >> packages/homebrew/terraform-linter.rb
-	@echo '    bin.install "terraform-linter"' >> packages/homebrew/terraform-linter.rb
-	@echo '  end' >> packages/homebrew/terraform-linter.rb
-	@echo '  test do' >> packages/homebrew/terraform-linter.rb
-	@echo '    assert_match version.to_s, shell_output("#{bin}/terraform-linter --version")' >> packages/homebrew/terraform-linter.rb
-	@echo '  end' >> packages/homebrew/terraform-linter.rb
-	@echo 'end' >> packages/homebrew/terraform-linter.rb
-	@echo "Homebrew formula created at packages/homebrew/terraform-linter.rb"
+	@echo 'class GoTerraformLinter < Formula' > packages/homebrew/go-terraform-linter.rb
+	@echo '  desc "A security-focused Terraform linter"' >> packages/homebrew/go-terraform-linter.rb
+	@echo '  homepage "https://github.com/heyimusa/go-terraform-linter"' >> packages/homebrew/go-terraform-linter.rb
+	@echo '  version "$(VERSION)"' >> packages/homebrew/go-terraform-linter.rb
+	@echo '  url "https://github.com/heyimusa/go-terraform-linter/releases/download/$(VERSION)/go-terraform-linter-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz"' >> packages/homebrew/go-terraform-linter.rb
+	@echo '  def install' >> packages/homebrew/go-terraform-linter.rb
+	@echo '    bin.install "go-terraform-linter"' >> packages/homebrew/go-terraform-linter.rb
+	@echo '  end' >> packages/homebrew/go-terraform-linter.rb
+	@echo '  test do' >> packages/homebrew/go-terraform-linter.rb
+	@echo '    assert_match version.to_s, shell_output("#{bin}/go-terraform-linter --version")' >> packages/homebrew/go-terraform-linter.rb
+	@echo '  end' >> packages/homebrew/go-terraform-linter.rb
+	@echo 'end' >> packages/homebrew/go-terraform-linter.rb
+	@echo "Homebrew formula created at packages/homebrew/go-terraform-linter.rb"
 
 snap: build-all ## Create Snap package
 	@mkdir -p packages/snap
 	@echo "Creating Snap package..."
-	@echo 'name: terraform-linter' > packages/snap/snapcraft.yaml
+	@echo 'name: go-terraform-linter' > packages/snap/snapcraft.yaml
 	@echo 'version: "$(VERSION:v%=%)"' >> packages/snap/snapcraft.yaml
 	@echo 'summary: A security-focused Terraform linter' >> packages/snap/snapcraft.yaml
 	@echo 'description: |' >> packages/snap/snapcraft.yaml
@@ -89,42 +89,42 @@ snap: build-all ## Create Snap package
 	@echo 'base: core22' >> packages/snap/snapcraft.yaml
 	@echo '' >> packages/snap/snapcraft.yaml
 	@echo 'apps:' >> packages/snap/snapcraft.yaml
-	@echo '  terraform-linter:' >> packages/snap/snapcraft.yaml
-	@echo '    command: bin/terraform-linter' >> packages/snap/snapcraft.yaml
+	@echo '  go-terraform-linter:' >> packages/snap/snapcraft.yaml
+	@echo '    command: bin/go-terraform-linter' >> packages/snap/snapcraft.yaml
 	@echo '    plugs: [home, removable-media]' >> packages/snap/snapcraft.yaml
 	@echo '' >> packages/snap/snapcraft.yaml
 	@echo 'parts:' >> packages/snap/snapcraft.yaml
-	@echo '  terraform-linter:' >> packages/snap/snapcraft.yaml
+	@echo '  go-terraform-linter:' >> packages/snap/snapcraft.yaml
 	@echo '    plugin: dump' >> packages/snap/snapcraft.yaml
 	@echo '    source: dist/' >> packages/snap/snapcraft.yaml
 	@echo '    organize:' >> packages/snap/snapcraft.yaml
-	@echo '      terraform-linter-linux-amd64: bin/terraform-linter' >> packages/snap/snapcraft.yaml
+	@echo '      go-terraform-linter-linux-amd64: bin/go-terraform-linter' >> packages/snap/snapcraft.yaml
 	@echo "Snap package config created at packages/snap/snapcraft.yaml"
 
 chocolatey: build-all ## Create Chocolatey package
 	@mkdir -p packages/chocolatey/tools
 	@echo "Creating Chocolatey package..."
-	@echo '<?xml version="1.0" encoding="utf-8"?>' > packages/chocolatey/terraform-linter.nuspec
-	@echo '<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '  <metadata>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <id>terraform-linter</id>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <version>$(VERSION:v%=%)</version>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <packageSourceUrl>https://github.com/heyimusa/go-terraform-linter</packageSourceUrl>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <owners>heyimusa</owners>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <title>Terraform Linter</title>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <authors>heyimusa</authors>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <projectUrl>https://github.com/heyimusa/go-terraform-linter</projectUrl>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <summary>A security-focused Terraform linter</summary>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <description>A fast and comprehensive Terraform linter that focuses on security best practices, resource misconfigurations, and infrastructure vulnerabilities.</description>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <tags>terraform security linter infrastructure devops</tags>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '  </metadata>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '  <files>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '    <file src="tools/**" target="tools" />' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '  </files>' >> packages/chocolatey/terraform-linter.nuspec
-	@echo '</package>' >> packages/chocolatey/terraform-linter.nuspec
+	@echo '<?xml version="1.0" encoding="utf-8"?>' > packages/chocolatey/go-terraform-linter.nuspec
+	@echo '<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '  <metadata>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <id>go-terraform-linter</id>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <version>$(VERSION:v%=%)</version>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <packageSourceUrl>https://github.com/heyimusa/go-terraform-linter</packageSourceUrl>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <owners>heyimusa</owners>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <title>Go Terraform Linter</title>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <authors>heyimusa</authors>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <projectUrl>https://github.com/heyimusa/go-terraform-linter</projectUrl>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <summary>A security-focused Terraform linter</summary>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <description>A fast and comprehensive Terraform linter that focuses on security best practices, resource misconfigurations, and infrastructure vulnerabilities.</description>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <tags>terraform security linter infrastructure devops</tags>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '  </metadata>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '  <files>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '    <file src="tools/**" target="tools" />' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '  </files>' >> packages/chocolatey/go-terraform-linter.nuspec
+	@echo '</package>' >> packages/chocolatey/go-terraform-linter.nuspec
 	@echo 'Creating PowerShell install script...'
-	@echo '$$packageName = "terraform-linter"' > packages/chocolatey/tools/chocolateyinstall.ps1
-	@echo '$$url64 = "https://github.com/heyimusa/go-terraform-linter/releases/download/$(VERSION)/terraform-linter-windows-amd64.exe"' >> packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '$$packageName = "go-terraform-linter"' > packages/chocolatey/tools/chocolateyinstall.ps1
+	@echo '$$url64 = "https://github.com/heyimusa/go-terraform-linter/releases/download/$(VERSION)/go-terraform-linter-windows-amd64.exe"' >> packages/chocolatey/tools/chocolateyinstall.ps1
 	@echo '' >> packages/chocolatey/tools/chocolateyinstall.ps1
 	@echo '$$packageArgs = @{' >> packages/chocolatey/tools/chocolateyinstall.ps1
 	@echo '  packageName   = $$packageName' >> packages/chocolatey/tools/chocolateyinstall.ps1
@@ -134,7 +134,7 @@ chocolatey: build-all ## Create Chocolatey package
 	@echo '}' >> packages/chocolatey/tools/chocolateyinstall.ps1
 	@echo '' >> packages/chocolatey/tools/chocolateyinstall.ps1
 	@echo 'Install-ChocolateyPackage @packageArgs' >> packages/chocolatey/tools/chocolateyinstall.ps1
-	@cp dist/terraform-linter-windows-amd64.exe packages/chocolatey/tools/terraform-linter.exe
+	@cp dist/go-terraform-linter-windows-amd64.exe packages/chocolatey/tools/go-terraform-linter.exe
 	@echo "Chocolatey package created at packages/chocolatey/"
 
 packages: homebrew snap chocolatey ## Create all package manager configs

@@ -15,6 +15,8 @@ jobs:
     if: github.repository == 'heyimusa/go-terraform-linter'
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           
       - name: Set Version
         run: |
@@ -30,18 +32,19 @@ jobs:
       - name: Update Homebrew Tap
         uses: mislav/bump-homebrew-formula-action@v3
         with:
-          formula-name: terraform-linter
-          formula-path: Formula/terraform-linter.rb
-          homebrew-tap: heyimusa/homebrew-terraform-linter
+          formula-name: go-terraform-linter
+          formula-path: Formula/go-terraform-linter.rb
+          homebrew-tap: heyimusa/homebrew-go-terraform-linter
           base-branch: main
           create-pullrequest: false
-          download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ env.VERSION }}/terraform-linter-darwin-amd64
+          download-url: https://github.com/heyimusa/go-terraform-linter/releases/download/${{ env.VERSION }}/go-terraform-linter-darwin-amd64
           commit-message: |
-            terraform-linter ${{ env.VERSION }}
+            go-terraform-linter ${{ env.VERSION }}
             
             Automatically updated by GitHub Actions
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          HOMEBREW_NO_AUTO_UPDATE: 1
 
   publish-snap:
     runs-on: ubuntu-latest
@@ -60,6 +63,15 @@ jobs:
         with:
           snap: ${{ steps.build.outputs.snap }}
           release: stable
+        continue-on-error: true
+      
+      - name: Snap Upload Status
+        if: failure()
+        run: |
+          echo "⚠️ Snap upload failed. This is likely because:"
+          echo "1. The snap name 'go-terraform-linter' is not registered"
+          echo "2. You need to register it at https://snapcraft.io/register"
+          echo "3. Or the SNAPCRAFT_TOKEN is not set correctly"
 
   publish-chocolatey:
     runs-on: windows-latest
@@ -93,7 +105,7 @@ jobs:
       - name: Build Chocolatey Package
         run: |
           cd packages/chocolatey
-          choco pack terraform-linter.nuspec
+          choco pack go-terraform-linter.nuspec
       
       - name: Publish to Chocolatey
         run: |
