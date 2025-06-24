@@ -15,25 +15,25 @@ var (
 	buildTime  = "unknown"
 
 	// CLI flags
-	configPath string
-	outputPath string
-	severity   string
-	verbose    bool
-	format     string
+	configPath  string
+	outputPath  string
+	severity    string
+	verbose     bool
+	format      string
 	showVersion bool
 
-	excludePatterns []string
-	configFile      string
+	excludePatterns   []string
+	configFile        string
 	severityOverrides map[string]string
 )
 
 func main() {
 	var rootCmd = &cobra.Command{
-		Use:   "terraform-linter [path]",
+		Use:   "go-terraform-linter [path]",
 		Short: "A security-focused Terraform linter",
 		Long: `A fast and comprehensive Terraform linter that focuses on security best practices,
 resource misconfigurations, and infrastructure vulnerabilities.`,
-		Args:  cobra.MaximumNArgs(1),
+		Args: cobra.MaximumNArgs(1),
 		RunE: runLint,
 	}
 
@@ -71,7 +71,7 @@ resource misconfigurations, and infrastructure vulnerabilities.`,
 }
 
 func printVersion() {
-	fmt.Printf("terraform-linter version %s\n", version)
+	fmt.Printf("go-terraform-linter version %s\n", version)
 	fmt.Printf("Git commit: %s\n", commitHash)
 	fmt.Printf("Built: %s\n", buildTime)
 	fmt.Printf("Go version: %s\n", "go1.21")
@@ -124,4 +124,4 @@ func runLint(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 	return nil
-} 
+}
