@@ -75,7 +75,7 @@ jobs:
 
   publish-chocolatey:
     runs-on: windows-latest
-    if: github.repository == 'heyimusa/go-terraform-linter'
+    if: false  # Temporarily disabled - waiting for go-terraform-linter package approval
     steps:
       - uses: actions/checkout@v4
       

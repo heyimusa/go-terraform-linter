@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>go-terraform-linter</id>
+    <version>1.0.3</version>
+    <packageSourceUrl>https://github.com/heyimusa/go-terraform-linter</packageSourceUrl>
+    <owners>heyimusa</owners>
+    <title>Go Terraform Linter</title>
+    <authors>heyimusa</authors>
+    <projectUrl>https://github.com/heyimusa/go-terraform-linter</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/heyimusa/go-terraform-linter/master/docs/logo.png</iconUrl>
+    <licenseUrl>https://github.com/heyimusa/go-terraform-linter/blob/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/heyimusa/go-terraform-linter</projectSourceUrl>
+    <docsUrl>https://github.com/heyimusa/go-terraform-linter/blob/master/docs/README.md</docsUrl>
+    <bugTrackerUrl>https://github.com/heyimusa/go-terraform-linter/issues</bugTrackerUrl>
+    <releaseNotes>https://github.com/heyimusa/go-terraform-linter/releases/tag/v1.0.3</releaseNotes>
+    <summary>A security-focused Terraform linter</summary>
+    <description>A fast and comprehensive Terraform linter that focuses on security best practices, resource misconfigurations, and infrastructure vulnerabilities.</description>
+    <tags>terraform security linter infrastructure devops go</tags>
+  </metadata>
+  <files>
+    <file src="tools/**" target="tools" />
+  </files>
+</package>

@@ -1,0 +1,28 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2196F3;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#grad1)" stroke="#1976D2" stroke-width="2"/>
+  
+  <!-- Security shield -->
+  <path d="M64 20 L44 32 L44 56 C44 76 64 92 64 92 C64 92 84 76 84 56 L84 32 Z" 
+        fill="white" stroke="#1976D2" stroke-width="2"/>
+  
+  <!-- Checkmark -->
+  <path d="M54 56 L62 64 L78 48" 
+        stroke="#4CAF50" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Terraform "T" -->
+  <rect x="56" y="100" width="16" height="4" fill="white"/>
+  <rect x="62" y="96" width="4" height="16" fill="white"/>
+  
+  <!-- Text -->
+  <text x="64" y="122" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="white">
+    LINTER
+  </text>
+</svg> 
