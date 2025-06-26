@@ -48,7 +48,7 @@ jobs:
 
   publish-snap:
     runs-on: ubuntu-latest
-    if: false  # Temporarily disabled - waiting for snap name approval
+    if: github.repository == 'heyimusa/go-terraform-linter'
     steps:
       - uses: actions/checkout@v4
       
