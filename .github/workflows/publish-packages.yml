@@ -75,7 +75,7 @@ jobs:
 
   publish-chocolatey:
     runs-on: windows-latest
-    if: false  # Temporarily disabled - waiting for go-terraform-linter package approval
+    if: github.repository == 'heyimusa/go-terraform-linter'
     steps:
       - uses: actions/checkout@v4
       
@@ -107,7 +107,18 @@ jobs:
           cd packages/chocolatey
           choco pack go-terraform-linter.nuspec
       
+      - name: Check API Key
+        run: |
+          if ("${{ secrets.CHOCOLATEY_API_KEY }}" -eq "") {
+            Write-Host "⚠️ CHOCOLATEY_API_KEY not set. Skipping Chocolatey publishing." -ForegroundColor Yellow
+            Write-Host "To enable Chocolatey publishing:" -ForegroundColor Yellow
+            Write-Host "1. Get your API key from https://community.chocolatey.org/account" -ForegroundColor Yellow
+            Write-Host "2. Add it as CHOCOLATEY_API_KEY in GitHub repository secrets" -ForegroundColor Yellow
+            exit 0
+          }
+      
       - name: Publish to Chocolatey
+        if: env.CHOCOLATEY_API_KEY != ''
         run: |
           choco apikey --key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
           $nupkg = Get-ChildItem packages/chocolatey/*.nupkg | Select-Object -First 1
@@ -116,4 +127,6 @@ jobs:
           } else {
             Write-Error "No .nupkg file found in packages/chocolatey/"
             exit 1
-          } 
+          }
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }} 
